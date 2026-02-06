@@ -26,7 +26,7 @@
       border: 1px solid #ccc;
       font-size: 14px;
     }
-    .top {
+    .top, .login-box {
       display: flex;
       justify-content: center;
       gap: 10px;
@@ -84,6 +84,12 @@
       background: #fafafa;
       text-align: left;
     }
+    .error {
+      color: #b00020;
+    }
+    .hidden {
+      display: none;
+    }
 
     @media (max-width: 800px) {
       .row {
@@ -102,22 +108,50 @@
   <div class="wrap">
     <h1>Dostupné akcie (verze 300)</h1>
 
-    <div class="top">
-      <label>Jméno obchodníka:</label>
-      <input id="user" placeholder="např. Petr" />
+    <!-- Přihlášení -->
+    <div id="login-section">
+      <div class="login-box">
+        <input id="login-name" placeholder="Jméno obchodníka (libovolné)" />
+        <input id="login-password" type="password" placeholder="Přístupové heslo" />
+        <button class="primary" id="login-btn">Přihlásit</button>
+      </div>
+      <div id="login-msg" class="muted"></div>
     </div>
 
-    <div id="debug" class="debug muted">HTML OK</div>
-    <div id="list" class="muted">Načítám…</div>
+    <!-- Hlavní obsah po přihlášení -->
+    <div id="app-section" class="hidden">
+      <div class="top">
+        <span class="muted">Přihlášený obchodník:</span>
+        <b id="user-label"></b>
+        <button id="logout-btn">Odhlásit</button>
+      </div>
+
+      <div id="debug" class="debug muted">Připraveno</div>
+      <div id="list" class="muted">Načítám…</div>
+    </div>
   </div>
 
-<script defer>
+<script>
 document.addEventListener("DOMContentLoaded", () => {
-
   const MIN_CENA = 1000000;
 
+  const debugEl = document.getElementById("debug");
+  const listEl = document.getElementById("list");
+  const loginSection = document.getElementById("login-section");
+  const appSection = document.getElementById("app-section");
+  const loginNameInput = document.getElementById("login-name");
+  const loginPasswordInput = document.getElementById("login-password");
+  const loginBtn = document.getElementById("login-btn");
+  const loginMsg = document.getElementById("login-msg");
+  const userLabel = document.getElementById("user-label");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  let currentTraderId = null;
+  let currentTraderName = null;
+
   const debug = (txt) => {
-    document.getElementById("debug").textContent = txt;
+    if (!debugEl) return;
+    debugEl.textContent = txt;
     console.log(txt);
   };
 
@@ -126,27 +160,101 @@ document.addEventListener("DOMContentLoaded", () => {
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
   );
 
-  const jmeno = () => document.getElementById("user").value.trim();
-
   const formatCena = (c) =>
     new Intl.NumberFormat("cs-CZ").format(c) + " Kč";
 
-  function vykresli(data) {
-    const el = document.getElementById("list");
+  function showLogin() {
+    loginSection.classList.remove("hidden");
+    appSection.classList.add("hidden");
+    currentTraderId = null;
+    currentTraderName = null;
+    loginPasswordInput.value = "";
+  }
 
+  function showApp() {
+    loginSection.classList.add("hidden");
+    appSection.classList.remove("hidden");
+  }
+
+  async function handleLogin() {
+    const name = loginNameInput.value.trim();
+    const password = loginPasswordInput.value.trim();
+
+    loginMsg.textContent = "";
+    loginMsg.classList.remove("error");
+
+    if (!name || !password) {
+      loginMsg.textContent = "Vyplňte prosím jméno i heslo.";
+      loginMsg.classList.add("error");
+      return;
+    }
+
+    debug("Ověřuji přístupové heslo…");
+
+    const { data, error } = await supabase
+      .from("traders")
+      .select("id")
+      .eq("password", password)
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error(error);
+      loginMsg.textContent = "Chyba při ověřování. Zkuste to prosím znovu.";
+      loginMsg.classList.add("error");
+      debug("CHYBA při loginu: " + error.message);
+      return;
+    }
+
+    if (!data) {
+      loginMsg.textContent = "Neplatné heslo. Obraťte se na správce.";
+      loginMsg.classList.add("error");
+      debug("Neplatné heslo.");
+      return;
+    }
+
+    currentTraderId = data.id;
+    currentTraderName = name;
+    userLabel.textContent = currentTraderName;
+    debug("Přihlášen obchodník ID " + currentTraderId);
+    showApp();
+    nacist();
+  }
+
+  async function nacist() {
+    debug("Načítám data…");
+    listEl.textContent = "Načítám…";
+
+    const { data, error } = await supabase
+      .from("items")
+      .select('id,priority_number,status,price,"reserved by","sold by"')
+      .order("priority_number", { ascending: true });
+
+    if (error) {
+      debug("CHYBA: " + error.message);
+      listEl.textContent = error.message;
+      return;
+    }
+
+    debug("Načteno řádků: " + data.length);
+    vykresli(data);
+  }
+
+  function vykresli(data) {
     const dostupne = data
       .filter(r => r.status === "K prodeji")
       .sort((a,b) => (a.priority_number ?? 0) - (b.priority_number ?? 0));
 
     if (dostupne.length === 0) {
-      el.textContent = "Žádné akcie k prodeji.";
+      listEl.textContent = "Žádné akcie k prodeji.";
       return;
     }
 
-    el.innerHTML = `<div class="muted">K prodeji: ${dostupne.length}</div>`;
+    let html = `<div class="muted">K prodeji: ${dostupne.length}</div>`;
 
     dostupne.forEach(r => {
-      el.innerHTML += `
+      html += `
         <div class="row">
           <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
 
@@ -166,31 +274,77 @@ document.addEventListener("DOMContentLoaded", () => {
               id="cena-${r.id}"
               style="width:140px"
             />
-            <button class="primary" onclick="rezervovat(${r.id})">
+            <button class="primary" data-id="${r.id}" class="rez-btn">
               Rezervovat
             </button>
           </div>
         </div>
       `;
     });
+
+    listEl.innerHTML = html;
+
+    // navázat kliknutí na tlačítka
+    listEl.querySelectorAll("button.primary").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-id"), 10);
+        rezervovat(id);
+      });
+    });
   }
 
-  async function nacist() {
-    debug("Načítám data…");
-
-    const { data, error } = await supabase
-      .from("items")
-      .select('id,priority_number,status,price,"reserved by","sold by"')
-      .order("priority_number", { ascending: true });
-
-    if (error) {
-      debug("CHYBA: " + error.message);
-      document.getElementById("list").textContent = error.message;
+  async function rezervovat(id) {
+    if (!currentTraderId || !currentTraderName) {
+      alert("Nejste přihlášen.");
       return;
     }
 
-    debug("Načteno řádků: " + data.length);
-    vykresli(data);
+    const input = document.getElementById("cena-" + id);
+    if (!input) return;
+
+    const novaCena = parseInt(input.value, 10);
+    if (isNaN(novaCena) || novaCena < MIN_CENA) {
+      alert("Cena musí být alespoň " + formatCena(MIN_CENA));
+      return;
+    }
+
+    debug("Rezervuji akcii #" + id + "…");
+
+    const { error } = await supabase
+      .from("items")
+      .update({
+        status: "Rezervováno",
+        price: novaCena,
+        "reserved by": currentTraderName
+      })
+      .eq("id", id)
+      .eq("status", "K prodeji");
+
+    if (error) {
+      console.error(error);
+      debug("CHYBA při rezervaci: " + error.message);
+      alert("Nepodařilo se rezervovat akcii. Zkuste to znovu.");
+      return;
+    }
+
+    debug("Akcie #" + id + " rezervována.");
+    nacist();
   }
 
-  async function rezervova
+  loginBtn.addEventListener("click", handleLogin);
+  loginPasswordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+
+  logoutBtn.addEventListener("click", () => {
+    showLogin();
+    debug("Odhlášeno.");
+    listEl.textContent = "";
+  });
+
+  // start: zobraz login
+  showLogin();
+});
+</script>
+</body>
+</html>
