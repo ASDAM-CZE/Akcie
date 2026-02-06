@@ -263,10 +263,17 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
   });
 
-  listEl.querySelectorAll("button.primary").forEach(btn => {
+    listEl.querySelectorAll("button.primary").forEach(btn => {
     btn.addEventListener("click", () => rezervovat(btn.dataset.id));
   });
-}
+} // konec funkce vykresli
+
+}); // ← TADY CHYBĚLO! Uzavření DOMContentLoaded
+
+</script>
+</body>
+</html>
+
 
 
 const trida =
