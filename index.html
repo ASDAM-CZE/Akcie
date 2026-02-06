@@ -6,50 +6,112 @@
   <title>Dostupné akcie</title>
 
   <style>
-    body { font-family: system-ui, -apple-system, Arial, sans-serif; margin:0; background:#fff; }
-    .wrap { max-width: 720px; margin: 60px auto; padding: 0 16px; text-align:center; }
-    h1 { margin-bottom: 20px; }
-    input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; width: 280px; font-size: 14px; }
-    .row { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin: 12px 0; text-align:left; }
-    .muted { color:#666; font-size:14px; }
-    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; cursor:pointer; margin-right:8px; }
-    button.primary { background:#e8f3ff; }
-    button.danger { background:#ffecec; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      margin: 0;
+      background: #fff;
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 60px auto;
+      padding: 0 16px;
+      text-align: center;
+    }
+    h1 { margin-bottom: 14px; }
+    .top {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 280px;
+      font-size: 14px;
+    }
+    .muted { color: #666; font-size: 14px; }
+    .statusline { margin: 10px 0 14px; }
+
+    .row {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 12px 0;
+      text-align: left;
+    }
+    .actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #f7f7f7;
+    }
+    button.primary { background: #e8f3ff; }
+    button.danger { background: #ffecec; }
   </style>
 
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <div class="wrap">
     <h1>Dostupné akcie</h1>
-    <input id="user" placeholder="Jméno obchodníka (např. Petr)" />
-    <div id="list" class="muted" style="margin-top:16px;">Načítám…</div>
+
+    <div class="top">
+      <label for="user">Jméno obchodníka:</label>
+      <input id="user" placeholder="např. Petr" />
+    </div>
+
+    <div id="list" class="muted">Načítám…</div>
   </div>
 
   <script>
+    // ====== SUPABASE ======
     const supabase = window.supabase.createClient(
       "https://pureguxhuoskbrtavwkp.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
     );
 
-    function show(msg) {
-      document.getElementById("list").textContent = msg;
+    function setText(msg) {
+      const el = document.getElementById("list");
+      el.textContent = msg;
     }
 
     function render(items) {
       const el = document.getElementById("list");
-      if (!items || items.length === 0) {
-        el.textContent = "Žádné dostupné akcie";
+
+      const visible = (items || []).filter(x => x.status !== "sold");
+
+      if (visible.length === 0) {
+        el.innerHTML = `
+          <div class="statusline muted">Načteno řádků: ${(items || []).length}</div>
+          <div class="muted">Žádné dostupné akcie</div>
+        `;
         return;
       }
-      el.innerHTML = "";
-      items.forEach(i => {
+
+      el.innerHTML = `
+        <div class="statusline muted">Načteno řádků: ${(items || []).length}</div>
+      `;
+
+      visible.forEach(i => {
+        const reservedInfo =
+          i.status === "reserved" && i.reserved_by
+            ? `<div class="muted">rezervoval: <b>${i.reserved_by}</b></div>`
+            : "";
+
         el.innerHTML += `
           <div class="row">
-            <div><strong>${i.symbol}</strong> – ${i.name}</div>
-            <div class="muted">stav: ${i.status}</div>
-            <div style="margin-top:10px;">
+            <div><strong>${i.symbol || ""}</strong> – ${i.name || ""}</div>
+            <div class="muted">stav: ${i.status || ""}</div>
+            ${reservedInfo}
+            <div class="actions">
               <button class="primary" onclick="reserve(${i.id})">Rezervovat</button>
               <button class="danger" onclick="sell(${i.id})">Prodáno</button>
             </div>
@@ -58,38 +120,25 @@
       });
     }
 
-    // Timeout wrapper: když request trvá moc dlouho, ukáže se zpráva
-    async function withTimeout(promise, ms = 6000) {
-      let t;
-      const timeout = new Promise((_, reject) => {
-        t = setTimeout(() => reject(new Error("Timeout: Supabase neodpověděl")), ms);
-      });
-      try {
-        return await Promise.race([promise, timeout]);
-      } finally {
-        clearTimeout(t);
-      }
-    }
-
     async function load() {
-      show("Načítám…");
-      try {
-        const res = await withTimeout(
-          supabase.from("items")
-            .select("id,symbol,name,status")
-            .in("status", ["open", "reserved"])   // zobraz jen relevantní
-            .order("symbol"),
-          8000
-        );
+      const el = document.getElementById("list");
+      el.innerHTML = "Načítám…";
 
-        const { data, error } = res;
+      try {
+        // Pozn.: sold_by nemusí existovat -> proto ho NEvybírám
+        const { data, error } = await supabase
+          .from("items")
+          .select("id,symbol,name,status,reserved_by")
+          .order("id");
+
         if (error) {
-          show("CHYBA (Supabase SELECT): " + error.message);
+          el.textContent = "CHYBA (SELECT): " + error.message;
           return;
         }
-        render(data);
+
+        render(data || []);
       } catch (e) {
-        show("CHYBA: " + (e.message || e));
+        el.textContent = "CHYBA (JS): " + (e.message || e);
       }
     }
 
@@ -98,18 +147,18 @@
       if (!user) return alert("Zadej jméno obchodníka");
 
       try {
-        const { error } = await withTimeout(
-          supabase.from("items")
-            .update({ status: "reserved", reserved_by: user })
-            .eq("id", id)
-            .eq("status", "open"), // zabrání duplicitě
-          8000
-        );
+        // DŮLEŽITÉ: eq("status","open") zabrání tomu, aby to šlo rezervovat 2×
+        const { error } = await supabase
+          .from("items")
+          .update({ status: "reserved", reserved_by: user })
+          .eq("id", id)
+          .eq("status", "open");
 
-        if (error) return alert("CHYBA (UPDATE): " + error.message);
-        load();
+        if (error) return alert("CHYBA (UPDATE reserve): " + error.message);
+
+        await load();
       } catch (e) {
-        alert("CHYBA: " + (e.message || e));
+        alert("CHYBA (JS reserve): " + (e.message || e));
       }
     }
 
@@ -118,21 +167,21 @@
       if (!user) return alert("Zadej jméno obchodníka");
 
       try {
-        const { error } = await withTimeout(
-          supabase.from("items")
-            .update({ status: "sold", sold_by: user })
-            .eq("id", id),
-          8000
-        );
+        // Pokud nemáš sloupec sold_by, tak ho sem nedáváme
+        const { error } = await supabase
+          .from("items")
+          .update({ status: "sold" })
+          .eq("id", id);
 
-        if (error) return alert("CHYBA (UPDATE): " + error.message);
-        load();
+        if (error) return alert("CHYBA (UPDATE sold): " + error.message);
+
+        await load();
       } catch (e) {
-        alert("CHYBA: " + (e.message || e));
+        alert("CHYBA (JS sold): " + (e.message || e));
       }
     }
 
-    // zpřístupníme funkce pro onclick
+    // pro onclick
     window.reserve = reserve;
     window.sell = sell;
 
