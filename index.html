@@ -1,136 +1,3 @@
-<!doctype html>
-<html lang="cs">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dostupné akcie</title>
-
-  <style>
-    body {
-      font-family: system-ui, -apple-system, Arial, sans-serif;
-      margin: 0;
-      background: #fff;
-    }
-    .wrap {
-      max-width: 1000px;
-      margin: 60px auto;
-      padding: 0 16px;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 16px;
-    }
-    input {
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-    .top, .login-box {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-    .row {
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 14px;
-      margin: 12px 0;
-      display: grid;
-      grid-template-columns: 140px 1fr 160px 320px;
-      gap: 10px;
-      align-items: center;
-      text-align: left;
-    }
-    .muted {
-      color: #666;
-      font-size: 14px;
-    }
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid #ddd;
-      font-size: 12px;
-    }
-    .actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-    button {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      cursor: pointer;
-      background: #f6f6f6;
-    }
-    button.primary {
-      background: #e8f3ff;
-    }
-    button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-    .debug {
-      margin: 10px auto 16px;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      max-width: 960px;
-      background: #fafafa;
-      text-align: left;
-    }
-    .error {
-      color: #b00020;
-    }
-    .hidden {
-      display: none;
-    }
-
-    @media (max-width: 800px) {
-      .row {
-        grid-template-columns: 1fr;
-      }
-      .actions {
-        justify-content: flex-start;
-      }
-    }
-  </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-
-<body>
-  <div class="wrap">
-    <h1>Dostupné akcie (verze 2026-1)</h1>
-
-    <!-- Přihlášení -->
-    <div id="login-section">
-      <div class="login-box">
-        <input id="login-name" placeholder="Jméno obchodníka (libovolné)" />
-        <input id="login-password" type="password" placeholder="Přístupové heslo" />
-        <button class="primary" id="login-btn">Přihlásit</button>
-      </div>
-      <div id="login-msg" class="muted"></div>
-    </div>
-
-    <!-- Hlavní obsah po přihlášení -->
-    <div id="app-section" class="hidden">
-      <div class="top">
-        <span class="muted">Přihlášený obchodník:</span>
-        <b id="user-label"></b>
-        <button id="logout-btn">Odhlásit</button>
-      </div>
-
-      <div id="debug" class="debug muted">Připraveno</div>
-      <div id="list" class="muted">Načítám…</div>
-    </div>
-  </div>
-
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const MIN_CENA = 1000000;
@@ -200,83 +67,101 @@ document.addEventListener("DOMContentLoaded", () => {
       .maybeSingle();
 
     if (error) {
-      console.error(error);
-      loginMsg.textContent = "Chyba při ověřování. Zkuste to prosím znovu.";
+      loginMsg.textContent = "Chyba při ověřování.";
       loginMsg.classList.add("error");
-      debug("CHYBA při loginu: " + error.message);
       return;
     }
 
     if (!data) {
-      loginMsg.textContent = "Neplatné heslo. Obraťte se na správce.";
+      loginMsg.textContent = "Neplatné heslo.";
       loginMsg.classList.add("error");
-      debug("Neplatné heslo.");
       return;
     }
 
     currentTraderId = data.id;
     currentTraderName = name;
     userLabel.textContent = currentTraderName;
-    debug("Přihlášen obchodník ID " + currentTraderId);
+
     showApp();
     nacist();
+  }
+
+  async function zrusitStareRezervace() {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    await supabase
+      .from("items")
+      .update({
+        status: "K prodeji",
+        "reserved by": null,
+        reserved_at: null
+      })
+      .lt("reserved_at", cutoff)
+      .eq("status", "Rezervováno");
   }
 
   async function nacist() {
     debug("Načítám data…");
     listEl.textContent = "Načítám…";
 
+    await zrusitStareRezervace();
+
     const { data, error } = await supabase
       .from("items")
-      .select('id,priority_number,status,price,"reserved by","sold by"')
+      .select('id,priority_number,status,price,"reserved by","sold by",paid,reserved_at')
       .order("priority_number", { ascending: true });
 
     if (error) {
-      debug("CHYBA: " + error.message);
       listEl.textContent = error.message;
       return;
     }
 
-    debug("Načteno řádků: " + data.length);
-    vykresli(data);
+    const moje = data.filter(r => r["reserved by"] === currentTraderName);
+
+    vykresli(data, moje);
   }
 
-  function vykresli(data) {
-    const dostupne = data
-      .filter(r => r.status === "K prodeji")
-      .sort((a,b) => (a.priority_number ?? 0) - (b.priority_number ?? 0));
+  function vykresli(data, moje) {
+    let html = "";
 
-    if (dostupne.length === 0) {
-      listEl.textContent = "Žádné akcie k prodeji.";
-      return;
+    if (moje.length > 0) {
+      html += `<h2>Moje rezervace (${moje.length})</h2>`;
+      moje.forEach(r => {
+        html += `
+          <div class="row" style="border-color:#88c;">
+            <div><span class="badge">#${r.id}</span></div>
+            <div>
+              <b>Priorita ${r.priority_number}</b><br>
+              <span class="muted">Cena: ${formatCena(r.price)}</span><br>
+              <span class="muted">Stav: ${r.status}</span><br>
+              <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span>
+            </div>
+            <div class="actions">
+              <button data-id="${r.id}" class="sell-btn">Prodáno</button>
+              <button data-id="${r.id}" class="paid-btn">Zaplaceno</button>
+              <button data-id="${r.id}" class="cancel-btn">Zrušit</button>
+            </div>
+          </div>
+        `;
+      });
     }
 
-    let html = `<div class="muted">K prodeji: ${dostupne.length}</div>`;
+    const dostupne = data.filter(r => r.status === "K prodeji");
+
+    html += `<h2>Dostupné akcie (${dostupne.length})</h2>`;
 
     dostupne.forEach(r => {
       html += `
         <div class="row">
           <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
-
           <div>
             <div><b>Akcie #${r.id}</b></div>
             <div class="muted">Stav: ${r.status}</div>
           </div>
-
           <div><b>${formatCena(r.price)}</b></div>
-
           <div class="actions">
-            <input
-              type="number"
-              min="${MIN_CENA}"
-              step="1000"
-              value="${r.price}"
-              id="cena-${r.id}"
-              style="width:140px"
-            />
-            <button class="primary" data-id="${r.id}" class="rez-btn">
-              Rezervovat
-            </button>
+            <input type="number" min="${MIN_CENA}" step="1000" value="${r.price}" id="cena-${r.id}" style="width:140px" />
+            <button class="primary" data-id="${r.id}">Rezervovat</button>
           </div>
         </div>
       `;
@@ -284,50 +169,77 @@ document.addEventListener("DOMContentLoaded", () => {
 
     listEl.innerHTML = html;
 
-    // navázat kliknutí na tlačítka
+    listEl.querySelectorAll(".sell-btn").forEach(btn => {
+      btn.addEventListener("click", () => oznacitProdej(btn.dataset.id));
+    });
+
+    listEl.querySelectorAll(".paid-btn").forEach(btn => {
+      btn.addEventListener("click", () => oznacitZaplaceno(btn.dataset.id));
+    });
+
+    listEl.querySelectorAll(".cancel-btn").forEach(btn => {
+      btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
+    });
+
     listEl.querySelectorAll("button.primary").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = parseInt(btn.getAttribute("data-id"), 10);
-        rezervovat(id);
-      });
+      btn.addEventListener("click", () => rezervovat(btn.dataset.id));
     });
   }
 
   async function rezervovat(id) {
-    if (!currentTraderId || !currentTraderName) {
-      alert("Nejste přihlášen.");
-      return;
-    }
-
     const input = document.getElementById("cena-" + id);
-    if (!input) return;
-
     const novaCena = parseInt(input.value, 10);
-    if (isNaN(novaCena) || novaCena < MIN_CENA) {
-      alert("Cena musí být alespoň " + formatCena(MIN_CENA));
-      return;
-    }
-
-    debug("Rezervuji akcii #" + id + "…");
 
     const { error } = await supabase
       .from("items")
       .update({
         status: "Rezervováno",
         price: novaCena,
-        "reserved by": currentTraderName
+        "reserved by": currentTraderName,
+        reserved_at: new Date().toISOString()
       })
       .eq("id", id)
       .eq("status", "K prodeji");
 
     if (error) {
-      console.error(error);
-      debug("CHYBA při rezervaci: " + error.message);
-      alert("Nepodařilo se rezervovat akcii. Zkuste to znovu.");
+      alert("Nepodařilo se rezervovat.");
       return;
     }
 
-    debug("Akcie #" + id + " rezervována.");
+    nacist();
+  }
+
+  async function oznacitProdej(id) {
+    await supabase
+      .from("items")
+      .update({
+        status: "Prodáno",
+        "sold by": currentTraderName
+      })
+      .eq("id", id);
+
+    nacist();
+  }
+
+  async function oznacitZaplaceno(id) {
+    await supabase
+      .from("items")
+      .update({ paid: true })
+      .eq("id", id);
+
+    nacist();
+  }
+
+  async function zrusitRezervaci(id) {
+    await supabase
+      .from("items")
+      .update({
+        status: "K prodeji",
+        "reserved by": null,
+        reserved_at: null
+      })
+      .eq("id", id);
+
     nacist();
   }
 
@@ -338,13 +250,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   logoutBtn.addEventListener("click", () => {
     showLogin();
-    debug("Odhlášeno.");
     listEl.textContent = "";
   });
 
-  // start: zobraz login
   showLogin();
 });
 </script>
-</body>
-</html>
