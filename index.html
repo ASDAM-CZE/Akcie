@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Akcie – dostupnost</title>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<style>
+body { font-family: system-ui; max-width: 800px; margin: auto; padding: 20px }
+.row { border:1px solid #ccc; padding:10px; margin:8px 0; border-radius:10px }
+.open { background:#fff }
+.reserved { background:#fff7cc }
+.sold { background:#e6ffe6 }
+button { margin-right:5px }
+</style>
+</head>
+<body>
+
+<h1>Dostupné akcie</h1>
+
+<label>Jméno obchodníka:</label>
+<input id="user" placeholder="např. Petr">
+
+<div id="list"></div>
+
+<script>
+const supabase = supabase.createClient(
+  "https://pureguxhuoskbrtavwkp.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
+);
+
+async function load() {
+  const { data } = await supabase
+    .from("items")
+    .select("id, symbol, name, status")
+    .order("symbol");
+  render(data || []);
+}
+
+async function reserve(id) {
+  const user = document.getElementById("user").value;
+  if (!user) return alert("Zadej jméno");
+  await supabase
+    .from("items")
+    .update({ status:"reserved", reserved_by:user })
+    .eq("id", id)
+    .eq("status","open");
+  load();
+}
+
+async function sell(id) {
+  const user = document.getElementById("user").value;
+  if (!user) return alert("Zadej jméno");
+  await supabase
+    .from("items")
+    .update({ status:"sold", sold_by:user })
+    .eq("id", id)
+    .eq("status","reserved");
+  load();
+}
+
+function render(items) {
+  const el = document.getElementById("list");
+  el.innerHTML = "";
+  items.forEach(i => {
+    el.innerHTML += `
+      <div class="row ${i.status}">
+        <b>${i.symbol}</b> – ${i.name}<br>
+        stav: <b>${i.status}</b><br>
+        <button onclick="reserve(${i.id})" ${i.status !== "open" ? "disabled" : ""}>Rezervovat</button>
+        <button onclick="sell(${i.id})" ${i.status !== "reserved" ? "disabled" : ""}>Prodáno</button>
+      </div>
+    `;
+  });
+}
+
+load();
+</script>
+
+</body>
+</html>
