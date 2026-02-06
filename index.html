@@ -174,14 +174,17 @@ function vykresli(data, moje) {
             if (r.paid === true) {
                 tlacitka = "";
             } else if (r.status === "Prodáno") {
-                tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplaceno</button>`;
-            } else {
-                tlacitka = `
-                    <button data-id="${r.id}" class="sell-btn">Prodáno</button>
-                    <button data-id="${r.id}" class="paid-btn">Zaplaceno</button>
-                    <button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
-                `;
-            }
+    // Prodáno → lze zaplatit
+    tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplaceno</button>`;
+} else if (r.status === "Rezervováno") {
+    // Rezervováno → nelze zaplatit, jen prodat nebo zrušit
+    tlacitka = `
+<button data-id="${r.id}" class="sell-btn">Prodáno</button>
+<button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
+`;
+} else {
+    tlacitka = "";
+}
 
             html += `
             <div class="row ${trida}">
