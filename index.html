@@ -7,8 +7,8 @@
 body { font-family: Arial, sans-serif; padding: 20px; }
 .hidden { display: none; }
 .row { border: 1px solid #ccc; padding: 10px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
-.actions button { margin-left: 5px; font-size: 1.1em; padding: 8px 14px; border: none; cursor: pointer; }
-.badge { background: #ddd; padding: 3px 6px; border-radius: 4px; }
+.actions button { margin-left: 5px; font-size: 1.05em; padding: 8px 14px; border: none; cursor: pointer; }
+.badge { background: #ddd; padding: 3px 6px; border-radius: 4px; font-weight:700; }
 .muted { color: #666; font-size: 0.9em; }
 .primary { background: #007bff; color: white; border: none; padding: 6px 10px; cursor: pointer; }
 .error { color: red; }
@@ -26,7 +26,6 @@ body { font-family: Arial, sans-serif; padding: 20px; }
   border: 2px solid #facc15;
   background: #fef9c3;
 }
-
 .sell-btn { background: #22c55e; color: #fff; }
 .paid-btn { background: #facc15; color: #111; }
 .cancel-btn { background: #ff0033; color: #fff; }
@@ -70,13 +69,21 @@ body { font-family: Arial, sans-serif; padding: 20px; }
   border: 1px solid #ccc;
   margin-top: 10px;
   font-size: 1.05em;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 .acc-body.hidden { display: none; }
 .acc-body { padding: 5px 0; }
 
+/* Hlavičky sladěné barvy podle sekce */
+.acc-header[data-target="rez"] { background:#dbeafe; border-color:#3b82f6; color:#0b5ed7; }
+.acc-header[data-target="pro"] { background:#dcfce7; border-color:#22c55e; color:#166534; }
+.acc-header[data-target="zap"] { background:#fef9c3; border-color:#facc15; color:#92400e; }
+
 /* Hromadná tlačítka */
 .bulk-actions { margin: 10px 0; }
-.bulk-actions button { margin-right: 8px; }
+.bulk-actions button { margin-right: 8px; font-size:1.15em; padding:10px 16px; border-radius:6px; }
 
 /* Jedno "hlavní" tlačítko vpravo nad dostupnými akciemi */
 .available-header {
@@ -86,6 +93,18 @@ body { font-family: Arial, sans-serif; padding: 20px; }
   margin: 6px 0 10px;
 }
 .available-actions { display: flex; gap: 8px; }
+
+/* Zvýraznění hlavního bulk-reserve tlačítka (větší než jednotlivá) */
+.available-actions .primary {
+  font-size: 1.2em;
+  padding: 10px 18px;
+  border-radius: 8px;
+}
+.row .actions .primary {
+  font-size: 1.05em;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
 
 /* Brand nadpis nad loginem */
 .brand {
@@ -132,10 +151,8 @@ body { font-family: Arial, sans-serif; padding: 20px; }
 }
 .modal-actions .cancel-btn { background: #777; color: #fff; }
 .modal.processing { opacity: .9; pointer-events: none; }
-
 .primary:hover { background: #005fcc; }
 .actions button:hover { filter: brightness(0.96); }
-
 input[type="text"], input[type="number"] {
   border: 1px solid #ccc;
   border-radius: 6px;
@@ -146,10 +163,18 @@ input[type="text"]:focus, input[type="number"]:focus {
   box-shadow: 0 0 0 3px rgba(0,123,255,.15);
 }
 .primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* malé doladění pro badge + prioritní text */
+.row .muted.prio { margin-left: 8px; font-size:0.9em; color:#444; font-weight:600; }
+
+/* Responsivní úpravy */
+@media (max-width:800px){
+  .row { flex-direction: column; align-items:flex-start; gap:8px; }
+  .row .actions { align-self:stretch; display:flex; gap:8px; justify-content:flex-end; width:100%; }
+}
 </style>
 </head>
 <body>
-
 <h1 class="brand">Rezidence Chrudim 1</h1>
 
 <!-- LOGIN -->
@@ -171,6 +196,7 @@ input[type="text"]:focus, input[type="number"]:focus {
 <div id="app-section" class="hidden">
   <h2>Vítejte, <span id="user-label"></span></h2>
   <button id="logout-btn">Odhlásit</button>
+
   <h3>Seznam akcií</h3>
   <div id="list"></div>
 </div>
@@ -187,9 +213,10 @@ input[type="text"]:focus, input[type="number"]:focus {
     <label for="brm-customer">Jméno zákazníka</label>
     <input id="brm-customer" type="text" placeholder="Zadejte jméno zákazníka" />
 
-    <label for="brm-price">Společná cena (Kč)</label>
-    <input id="brm-price" type="number" min="1000000" step="1000" inputmode="numeric" placeholder="1 000 000" />
-    <small class="muted">Tato cena se použije pro všechny vybrané položky.</small>
+    <label for="brm-price">Společná cena</label>
+    <input id="brm-price" type="number" min="1000000" step="1000" inputmode="numeric" placeholder="1 000 000 Kč — za jednu akcii" />
+
+    <small class="muted">Tato cena se použije pro všechny vybrané položky (Kč — za jednu akcii).</small>
 
     <div id="brm-msg" class="error" style="min-height:1.2em; margin-top:6px;"></div>
 
@@ -256,13 +283,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = loginPasswordInput.value.trim();
     loginMsg.textContent = "";
     loginMsg.classList.remove("error");
-
     if (!name || !password) {
       loginMsg.textContent = "Vyplňte prosím jméno i heslo.";
       loginMsg.classList.add("error");
       return;
     }
-
     const { data } = await supabase
       .from("traders")
       .select("id, is_admin")
@@ -270,13 +295,11 @@ document.addEventListener("DOMContentLoaded", () => {
       .eq("active", true)
       .limit(1)
       .maybeSingle();
-
     if (!data) {
       loginMsg.textContent = "Neplatné heslo.";
       loginMsg.classList.add("error");
       return;
     }
-
     currentTraderId = data.id;
     currentTraderName = name;
     currentIsAdmin = data.is_admin === true;
@@ -303,14 +326,11 @@ document.addEventListener("DOMContentLoaded", () => {
   async function nacist() {
     debug("Načítám data…");
     listEl.textContent = "Načítám…";
-
     await zrusitStareRezervace();
-
     const { data } = await supabase
       .from("items")
       .select("id,priority_number,status,price,reserved_by,reserved_for,reserved_at,paid")
       .order("priority_number", { ascending: true });
-
     const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === currentTraderName);
     vykresli(data, moje);
   }
@@ -361,11 +381,14 @@ document.addEventListener("DOMContentLoaded", () => {
           ? ""
           : `<input type="checkbox" class="bulk" data-id="${r.id}">`;
 
+        // badge + text "prioritní akcie"
+        const badgeWithText = `<span><span class="badge">#${r.id}</span><span class="muted prio">prioritní akcie</span></span>`;
+
         const blok = `
           <div class="row ${trida}">
             <div>
               ${checkboxHtml}
-              <span class="badge">#${r.id}</span>
+              ${badgeWithText}
             </div>
             <div>
               <span class="muted">Cena: ${formatCena(r.price)}</span><br>
@@ -393,6 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button id="bulk-paid" class="paid-btn">Hromadně zaplatit</button>
           <button id="bulk-cancel" class="cancel-btn">Hromadně zrušit</button>
         </div>
+
         <div class="accordion">
           <h3 class="acc-header" data-target="rez">Rezervované</h3>
           <div id="rez" class="acc-body">${htmlRez || "<div class='muted'>Žádné rezervované položky.</div>"}</div>
@@ -408,7 +432,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Dostupné akcie + hromadná rezervace
     const dostupne = data.filter(r => r.status === "K prodeji");
-
     html += `
       <h2>Dostupné akcie (${dostupne.length})</h2>
       <div class="available-header">
@@ -426,6 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div>
             <input type="checkbox" class="bulk" data-id="${r.id}">
             <span class="badge">#${r.id}</span>
+            <span class="muted prio">prioritní akcie</span>
           </div>
           <div>
             <div class="muted">Stav: ${r.status}</div>
@@ -441,22 +465,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     html += `<div id="available-list">${htmlAvail || "<div class='muted'>Žádné dostupné položky.</div>"}</div>`;
-
     listEl.innerHTML = html;
 
     // Jednotlivé akce
     listEl.querySelectorAll(".sell-btn").forEach(btn => {
-      btn.addEventListener("click", () => oznacitProdej(btn.dataset.id));
+      btn.addEventListener("click", (e) => { e.preventDefault(); oznacitProdej(btn.dataset.id); });
     });
     listEl.querySelectorAll(".paid-btn").forEach(btn => {
-      btn.addEventListener("click", () => oznacitZaplaceno(btn.dataset.id));
+      btn.addEventListener("click", (e) => { e.preventDefault(); oznacitZaplaceno(btn.dataset.id); });
     });
     listEl.querySelectorAll(".cancel-btn").forEach(btn => {
-      btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
+      btn.addEventListener("click", (e) => { e.preventDefault(); zrusitRezervaci(btn.dataset.id); });
     });
+
     listEl.querySelectorAll("button.primary").forEach(btn => {
       if (btn.id !== "bulk-reserve") {
-        btn.addEventListener("click", () => rezervovat(btn.dataset.id));
+        btn.addEventListener("click", (e) => { e.preventDefault(); rezervovat(btn.dataset.id); });
       }
     });
 
@@ -478,7 +502,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Hromadná rezervace dostupných
     const bulkReserveBtn = document.getElementById("bulk-reserve");
-    if (bulkReserveBtn) bulkReserveBtn.addEventListener("click", openBulkReserveModal);
+    if (bulkReserveBtn) bulkReserveBtn.addEventListener("click", (e) => { e.preventDefault(); openBulkReserveModal(); });
 
     const availableList = document.getElementById("available-list");
     if (availableList) {
@@ -494,12 +518,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputZakaznik = document.getElementById("zakaznik-" + id);
     const novaCena = parseInt(inputCena.value, 10);
     const zakaznik = (inputZakaznik.value || "").trim();
-
     if (!zakaznik) {
       alert("Zadejte jméno zákazníka.");
       return;
     }
-
     await supabase
       .from("items")
       .update({
@@ -511,7 +533,6 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .eq("id", id)
       .eq("status", "K prodeji");
-
     nacist();
   }
 
@@ -554,7 +575,8 @@ document.addEventListener("DOMContentLoaded", () => {
     return Array.from(root.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
   }
 
-  async function bulkSell() {
+  async function bulkSell(e) {
+    if (e && e.preventDefault) e.preventDefault();
     // pouze z "Rezervované"
     const ids = getSelectedIds("#rez");
     if (ids.length === 0) {
@@ -568,7 +590,8 @@ document.addEventListener("DOMContentLoaded", () => {
     nacist();
   }
 
-  async function bulkPaid() {
+  async function bulkPaid(e) {
+    if (e && e.preventDefault) e.preventDefault();
     // pouze z "Prodáno"
     const ids = getSelectedIds("#pro");
     if (ids.length === 0) {
@@ -582,7 +605,8 @@ document.addEventListener("DOMContentLoaded", () => {
     nacist();
   }
 
-  async function bulkCancel() {
+  async function bulkCancel(e) {
+    if (e && e.preventDefault) e.preventDefault();
     // pouze z "Rezervované" – nezruší prodané ani zaplacené
     const ids = getSelectedIds("#rez");
     if (ids.length === 0) {
@@ -606,12 +630,12 @@ document.addEventListener("DOMContentLoaded", () => {
   function openBulkReserveModal() {
     const ids = getSelectedAvailableIds();
     if (ids.length === 0) return;
-
     brmCountEl.textContent = ids.length;
     brmCustomerEl.value = "";
-    brmPriceEl.value = "";
+    // předvyplnit cenu 1 000 000
+    brmPriceEl.value = 1000000;
+    brmPriceEl.placeholder = "1 000 000 Kč — za jednu akcii";
     brmMsgEl.textContent = "";
-
     brmEl.classList.remove("hidden");
     brmEl.setAttribute("aria-hidden", "false");
   }
@@ -627,10 +651,8 @@ document.addEventListener("DOMContentLoaded", () => {
       brmMsgEl.textContent = "Není vybrána žádná položka.";
       return;
     }
-
     const zakaznik = (brmCustomerEl.value || "").trim();
     const cena = parseInt(brmPriceEl.value, 10);
-
     if (!zakaznik) {
       brmMsgEl.textContent = "Zadejte jméno zákazníka.";
       return;
@@ -639,10 +661,8 @@ document.addEventListener("DOMContentLoaded", () => {
       brmMsgEl.textContent = "Zadejte platnou cenu.";
       return;
     }
-
     brmMsgEl.textContent = "";
     brmEl.classList.add("processing");
-
     await supabase
       .from("items")
       .update({
@@ -654,20 +674,19 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .in("id", ids)
       .eq("status", "K prodeji");
-
     brmEl.classList.remove("processing");
     closeBulkReserveModal();
     nacist();
   }
 
   // Modal eventy
-  brmCancelBtn.addEventListener("click", closeBulkReserveModal);
-  brmBackdrop.addEventListener("click", closeBulkReserveModal);
-  brmSubmitBtn.addEventListener("click", submitBulkReserve);
+  brmCancelBtn.addEventListener("click", (e) => { e.preventDefault(); closeBulkReserveModal(); });
+  brmBackdrop.addEventListener("click", (e) => { e.preventDefault(); closeBulkReserveModal(); });
+  brmSubmitBtn.addEventListener("click", (e) => { e.preventDefault(); submitBulkReserve(); });
 
-  loginBtn.addEventListener("click", handleLogin);
+  loginBtn.addEventListener("click", (e) => { e.preventDefault(); handleLogin(); });
   loginPasswordInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleLogin();
+    if (e.key === "Enter") { e.preventDefault(); handleLogin(); }
   });
 
   logoutBtn.addEventListener("click", () => {
@@ -678,6 +697,5 @@ document.addEventListener("DOMContentLoaded", () => {
   showLogin();
 });
 </script>
-
 </body>
 </html>
