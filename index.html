@@ -156,7 +156,7 @@
 
       const { data, error } = await supabase
         .from("items")
-        .select('id,priority_number,status,price,"reserved by","sold by",paid,reserved_at')
+        .select('id,priority_number,status,price,reserved_by,sold_by,paid,reserved_at')
         .order("priority_number", { ascending: true });
 
       if (error) {
@@ -164,7 +164,7 @@
         return;
       }
 
-      const moje = data.filter(r => r["reserved by"] === currentTraderName);
+      const moje = data.filter(r => r.reserved_by === currentTraderName);
 
       vykresli(data, moje);
     }
