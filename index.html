@@ -154,16 +154,15 @@ async function nacist() {
 
     const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === currentTraderName);
 
-    vykresli(data, moje);
-}
+   function vykresli(data, moje) {
 
-function vykresli(data, moje) {
     let html = "";
 
     if (moje.length > 0) {
         html += `<h2>Moje rezervace (${moje.length})</h2>`;
 
         moje.forEach(r => {
+
             const trida =
                 r.paid === true ? "zaplaceno" :
                 r.status === "Prodáno" ? "prodano" :
@@ -172,32 +171,35 @@ function vykresli(data, moje) {
             let tlacitka = "";
 
             if (r.paid === true) {
+                // Zaplaceno → žádná tlačítka
                 tlacitka = "";
+
             } else if (r.status === "Prodáno") {
-    // Prodáno → lze zaplatit
-    tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplaceno</button>`;
-} else if (r.status === "Rezervováno") {
-    // Rezervováno → nelze zaplatit, jen prodat nebo zrušit
-    tlacitka = `
-<button data-id="${r.id}" class="sell-btn">Prodáno</button>
-<button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
-`;
-} else {
-    tlacitka = "";
-}
+                // Prodáno → lze zaplatit
+                tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplatit</button>`;
+
+            } else if (r.status === "Rezervováno") {
+                // Rezervováno → nelze zaplatit, jen prodat nebo zrušit
+                tlacitka = `
+                    <button data-id="${r.id}" class="sell-btn">Prodat</button>
+                    <button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
+                `;
+            }
 
             html += `
-            <div class="row ${trida}">
-                <div><span class="badge">#${r.id}</span></div>
-                <div>
-                    <b>Priorita ${r.priority_number}</b><br>
-                    <span class="muted">Cena: ${formatCena(r.price)}</span><br>
-                    <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
-                    <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span><br>
-                    <span class="muted">Stav: ${r.status}</span>
-                </div>
-                <div class="actions">${tlacitka}</div>
-            </div>`;
+                <div class="row ${trida}">
+                    <div><span class="badge">#${r.id}</span></div>
+
+                    <div>
+                        <b>Priorita ${r.priority_number}</b><br>
+                        <span class="muted">Cena: ${formatCena(r.price)}</span><br>
+                        <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
+                        <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span><br>
+                        <span class="muted">Stav: ${r.status}</span>
+                    </div>
+
+                    <div class="actions">${tlacitka}</div>
+                </div>`;
         });
     }
 
@@ -207,19 +209,22 @@ function vykresli(data, moje) {
 
     dostupne.forEach(r => {
         html += `
-        <div class="row">
-            <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
-            <div>
-                <div><b>Akcie #${r.id}</b></div>
-                <div class="muted">Stav: ${r.status}</div>
-            </div>
-            <div><b>${formatCena(r.price)}</b></div>
-            <div class="actions">
-                <input type="number" min="1000000" step="1000" value="${r.price}" id="cena-${r.id}" style="width:140px" />
-                <input type="text" placeholder="Jméno zákazníka" id="zakaznik-${r.id}" style="width:160px" />
-                <button class="primary" data-id="${r.id}">Rezervovat</button>
-            </div>
-        </div>`;
+            <div class="row">
+                <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
+
+                <div>
+                    <div><b>Akcie #${r.id}</b></div>
+                    <div class="muted">Stav: ${r.status}</div>
+                </div>
+
+                <div><b>${formatCena(r.price)}</b></div>
+
+                <div class="actions">
+                    <input type="number" min="1000000" step="1000" value="${r.price}" id="cena-${r.id}" style="width:140px" />
+                    <input type="text" placeholder="Jméno zákazníka" id="zakaznik-${r.id}" style="width:160px" />
+                    <button class="primary" data-id="${r.id}">Rezervovat</button>
+                </div>
+            </div>`;
     });
 
     listEl.innerHTML = html;
@@ -240,7 +245,6 @@ function vykresli(data, moje) {
         btn.addEventListener("click", () => rezervovat(btn.dataset.id));
     });
 }
-
 async function rezervovat(id) {
     const inputCena = document.getElementById("cena-" + id);
     const inputZakaznik = document.getElementById("zakaznik-" + id);
