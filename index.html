@@ -6,56 +6,20 @@
   <title>Dostupné akcie</title>
 
   <style>
-    body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-      margin: 0;
-      background: #fff;
-    }
-    .wrap {
-      max-width: 760px;
-      margin: 60px auto;
-      padding: 0 16px;
-      text-align: center;
-    }
+    body { font-family: system-ui, -apple-system, Arial, sans-serif; margin:0; background:#fff; }
+    .wrap { max-width: 760px; margin: 60px auto; padding: 0 16px; text-align:center; }
     h1 { margin-bottom: 14px; }
-    .top {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      margin-bottom: 16px;
-    }
-    input {
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      width: 280px;
-      font-size: 14px;
-    }
-    .muted { color: #666; font-size: 14px; }
-    .statusline { margin: 10px 0 14px; }
-
-    .row {
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 12px;
-      margin: 12px 0;
-      text-align: left;
-    }
-    .actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
-    button {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      cursor: pointer;
-      background: #f7f7f7;
-    }
-    button.primary { background: #e8f3ff; }
-    button.danger { background: #ffecec; }
+    .top { display:flex; justify-content:center; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 12px; }
+    input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; width: 280px; font-size: 14px; }
+    .muted { color:#666; font-size:14px; }
+    .dbg { margin: 10px auto 14px; padding: 10px; border:1px solid #ddd; border-radius: 10px; text-align:left; max-width: 640px; }
+    .row { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin: 12px 0; text-align: left; }
+    .actions { margin-top: 10px; display:flex; gap:8px; flex-wrap:wrap; }
+    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; cursor: pointer; background:#f7f7f7; }
+    button.primary { background:#e8f3ff; }
+    button.danger { background:#ffecec; }
   </style>
 
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -68,49 +32,50 @@
       <input id="user" placeholder="např. Petr" />
     </div>
 
+    <div id="debug" class="dbg muted">HTML OK</div>
     <div id="list" class="muted">Načítám…</div>
   </div>
 
   <script>
-    // ====== SUPABASE ======
+    const dbg = (msg) => {
+      document.getElementById("debug").textContent = msg;
+      console.log("[DBG]", msg);
+    };
+
+    // 1) JS běží
+    dbg("1) JS start");
+
+    // 2) Je načtená supabase knihovna?
+    if (!window.supabase) {
+      document.getElementById("list").textContent = "CHYBA: Supabase knihovna se nenačetla (CDN blokováno)";
+      dbg("STOP: window.supabase = null");
+      throw new Error("Supabase lib missing");
+    }
+    dbg("2) Supabase lib OK");
+
+    // 3) Vytvořit klienta
     const supabase = window.supabase.createClient(
       "https://pureguxhuoskbrtavwkp.supabase.co",
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
     );
-
-    function setText(msg) {
-      const el = document.getElementById("list");
-      el.textContent = msg;
-    }
+    dbg("3) Client vytvořen");
 
     function render(items) {
       const el = document.getElementById("list");
-
       const visible = (items || []).filter(x => x.status !== "sold");
 
       if (visible.length === 0) {
-        el.innerHTML = `
-          <div class="statusline muted">Načteno řádků: ${(items || []).length}</div>
-          <div class="muted">Žádné dostupné akcie</div>
-        `;
+        el.innerHTML = `<div class="muted">Načteno řádků: ${(items || []).length}<br>Žádné dostupné akcie</div>`;
         return;
       }
 
-      el.innerHTML = `
-        <div class="statusline muted">Načteno řádků: ${(items || []).length}</div>
-      `;
+      el.innerHTML = `<div class="muted">Načteno řádků: ${(items || []).length}</div>`;
 
       visible.forEach(i => {
-        const reservedInfo =
-          i.status === "reserved" && i.reserved_by
-            ? `<div class="muted">rezervoval: <b>${i.reserved_by}</b></div>`
-            : "";
-
         el.innerHTML += `
           <div class="row">
             <div><strong>${i.symbol || ""}</strong> – ${i.name || ""}</div>
             <div class="muted">stav: ${i.status || ""}</div>
-            ${reservedInfo}
             <div class="actions">
               <button class="primary" onclick="reserve(${i.id})">Rezervovat</button>
               <button class="danger" onclick="sell(${i.id})">Prodáno</button>
@@ -121,24 +86,26 @@
     }
 
     async function load() {
-      const el = document.getElementById("list");
-      el.innerHTML = "Načítám…";
+      dbg("4) SELECT start");
+      document.getElementById("list").textContent = "Načítám…";
 
       try {
-        // Pozn.: sold_by nemusí existovat -> proto ho NEvybírám
         const { data, error } = await supabase
           .from("items")
           .select("id,symbol,name,status,reserved_by")
           .order("id");
 
         if (error) {
-          el.textContent = "CHYBA (SELECT): " + error.message;
+          document.getElementById("list").textContent = "CHYBA (SELECT): " + error.message;
+          dbg("STOP: SELECT error = " + error.message);
           return;
         }
 
+        dbg("5) SELECT OK, řádků: " + (data ? data.length : 0));
         render(data || []);
       } catch (e) {
-        el.textContent = "CHYBA (JS): " + (e.message || e);
+        document.getElementById("list").textContent = "CHYBA (JS): " + (e.message || e);
+        dbg("STOP: catch = " + (e.message || e));
       }
     }
 
@@ -146,42 +113,29 @@
       const user = document.getElementById("user").value.trim();
       if (!user) return alert("Zadej jméno obchodníka");
 
-      try {
-        // DŮLEŽITÉ: eq("status","open") zabrání tomu, aby to šlo rezervovat 2×
-        const { error } = await supabase
-          .from("items")
-          .update({ status: "reserved", reserved_by: user })
-          .eq("id", id)
-          .eq("status", "open");
+      const { error } = await supabase
+        .from("items")
+        .update({ status: "reserved", reserved_by: user })
+        .eq("id", id)
+        .eq("status", "open");
 
-        if (error) return alert("CHYBA (UPDATE reserve): " + error.message);
-
-        await load();
-      } catch (e) {
-        alert("CHYBA (JS reserve): " + (e.message || e));
-      }
+      if (error) return alert("CHYBA (reserve): " + error.message);
+      load();
     }
 
     async function sell(id) {
       const user = document.getElementById("user").value.trim();
       if (!user) return alert("Zadej jméno obchodníka");
 
-      try {
-        // Pokud nemáš sloupec sold_by, tak ho sem nedáváme
-        const { error } = await supabase
-          .from("items")
-          .update({ status: "sold" })
-          .eq("id", id);
+      const { error } = await supabase
+        .from("items")
+        .update({ status: "sold" })
+        .eq("id", id);
 
-        if (error) return alert("CHYBA (UPDATE sold): " + error.message);
-
-        await load();
-      } catch (e) {
-        alert("CHYBA (JS sold): " + (e.message || e));
-      }
+      if (error) return alert("CHYBA (sold): " + error.message);
+      load();
     }
 
-    // pro onclick
     window.reserve = reserve;
     window.sell = sell;
 
