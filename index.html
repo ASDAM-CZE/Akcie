@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Dostupné akcie – test</title>
+  <title>Dostupné akcie</title>
 
   <style>
     body {
@@ -17,74 +17,121 @@
       padding: 0 16px;
       text-align: center;
     }
-    h1 {
+    h1 { margin-bottom: 20px; }
+
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 240px;
+      font-size: 14px;
       margin-bottom: 20px;
     }
-    .box {
-      margin-top: 20px;
-      padding: 14px;
+
+    .row {
       border: 1px solid #ddd;
       border-radius: 10px;
-      font-size: 15px;
+      padding: 12px;
+      margin: 12px 0;
+      text-align: left;
     }
+
+    .muted { color: #666; font-size: 14px; }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      margin-right: 8px;
+    }
+
+    button.primary { background: #e8f3ff; }
+    button.danger { background: #ffecec; }
   </style>
 
-  <!-- Supabase JS (oficiální CDN) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
   <div class="wrap">
-    <h1>Dostupné akcie – TEST</h1>
+    <h1>Dostupné akcie</h1>
 
-    <!-- Toto MUSÍ JS přepsat -->
-    <div id="status" class="box">
-      HTML načteno – čekám na JS…
-    </div>
+    <input id="user" placeholder="Jméno obchodníka (např. Petr)" />
+
+    <div id="list" class="muted">Načítám…</div>
   </div>
 
   <script>
-    /*************************************************
-     * 1️⃣ JASNÝ DŮKAZ, ŽE JS BĚŽÍ
-     *************************************************/
-    const box = document.getElementById("status");
-    box.textContent = "✅ JavaScript běží";
+    const supabase = window.supabase.createClient(
+      "https://pureguxhuoskbrtavwkp.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
+    );
 
-    /*************************************************
-     * 2️⃣ OTESTUJEME, JESTLI SE NAČETLA SUPABASE KNIHOVNA
-     *************************************************/
-    setTimeout(() => {
-      if (!window.supabase) {
-        box.textContent =
-          "❌ Supabase knihovna se NENAČETLA (CDN blokováno prohlížečem)";
+    function render(items) {
+      const el = document.getElementById("list");
+
+      if (!items || items.length === 0) {
+        el.textContent = "Žádné dostupné akcie";
         return;
       }
 
-      box.textContent = "✅ Supabase knihovna načtena";
+      el.innerHTML = "";
+      items.forEach(i => {
+        el.innerHTML += `
+          <div class="row">
+            <strong>${i.symbol}</strong> – ${i.name}<br />
+            <span class="muted">stav: ${i.status}</span><br /><br />
+            <button class="primary" onclick="reserve(${i.id})">Rezervovat</button>
+            <button class="danger" onclick="sell(${i.id})">Prodáno</button>
+          </div>
+        `;
+      });
+    }
 
-      /*************************************************
-       * 3️⃣ ZKUSÍME JEDNODUCHÝ DOTAZ
-       *************************************************/
-      const supabase = window.supabase.createClient(
-        "https://pureguxhuoskbrtavwkp.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
-      );
+    async function load() {
+      const el = document.getElementById("list");
+      el.textContent = "Načítám…";
 
-      box.textContent = "⏳ Dotazuji Supabase…";
-
-      supabase
+      const { data, error } = await supabase
         .from("items")
         .select("id,symbol,name,status")
-        .then(({ data, error }) => {
-          if (error) {
-            box.textContent = "❌ Supabase chyba: " + error.message;
-            return;
-          }
+        .neq("status", "sold");
 
-          box.innerHTML =
-            "✅ Supabase OK<br>Načteno řádků: <b>" + data.length + "</b>";
-        });
-    }, 500);
+      if (error) {
+        el.textContent = "Chyba: " + error.message;
+        return;
+      }
+
+      render(data);
+    }
+
+    async function reserve(id) {
+      const user = document.getElementById("user").value.trim();
+      if (!user) return alert("Zadej jméno obchodníka");
+
+      await supabase
+        .from("items")
+        .update({ status: "reserved", reserved_by: user })
+        .eq("id", id)
+        .eq("status", "open");
+
+      load();
+    }
+
+    async function sell(id) {
+      const user = document.getElementById("user").value.trim();
+      if (!user) return alert("Zadej jméno obchodníka");
+
+      await supabase
+        .from("items")
+        .update({ status: "sold", sold_by: user })
+        .eq("id", id);
+
+      load();
+    }
+
+    load();
   </script>
 </body>
 </html>
