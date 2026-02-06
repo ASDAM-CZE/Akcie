@@ -18,7 +18,6 @@ body { font-family: Arial, sans-serif; padding: 20px; }
 .prodano { border: 2px solid #22c55e; }
 .zaplaceno { border: 2px solid #ff0033; }
 
-/* zvýrazněná tlačítka */
 .sell-btn { background: #22c55e; color: #fff; }
 .paid-btn { background: #ff0033; color: #fff; }
 .cancel-btn { background: #ff0033; color: #fff; }
@@ -40,6 +39,7 @@ body { font-family: Arial, sans-serif; padding: 20px; }
 <div id="app-section" class="hidden">
 <h2>Vítejte, <span id="user-label"></span></h2>
 <button id="logout-btn">Odhlásit</button>
+
 <h3>Seznam akcií</h3>
 <div id="list"></div>
 </div>
@@ -69,237 +69,243 @@ let currentIsAdmin = false;
 const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; console.log(txt); };
 
 const supabase = window.supabase.createClient(
-  "https://pureguxhuoskbrtavwkp.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
+    "https://pureguxhuoskbrtavwkp.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
 );
 
 const formatCena = (c) => new Intl.NumberFormat("cs-CZ").format(c) + " Kč";
 
 function showLogin() {
-  loginSection.classList.remove("hidden");
-  appSection.classList.add("hidden");
-  currentTraderId = null;
-  currentTraderName = null;
-  currentIsAdmin = false;
-  loginPasswordInput.value = "";
+    loginSection.classList.remove("hidden");
+    appSection.classList.add("hidden");
+    currentTraderId = null;
+    currentTraderName = null;
+    currentIsAdmin = false;
+    loginPasswordInput.value = "";
 }
 
 function showApp() {
-  loginSection.classList.add("hidden");
-  appSection.classList.remove("hidden");
+    loginSection.classList.add("hidden");
+    appSection.classList.remove("hidden");
 }
 
 async function handleLogin() {
-  const name = loginNameInput.value.trim();
-  const password = loginPasswordInput.value.trim();
+    const name = loginNameInput.value.trim();
+    const password = loginPasswordInput.value.trim();
 
-  loginMsg.textContent = "";
-  loginMsg.classList.remove("error");
+    loginMsg.textContent = "";
+    loginMsg.classList.remove("error");
 
-  if (!name || !password) {
-    loginMsg.textContent = "Vyplňte prosím jméno i heslo.";
-    loginMsg.classList.add("error");
-    return;
-  }
+    if (!name || !password) {
+        loginMsg.textContent = "Vyplňte prosím jméno i heslo.";
+        loginMsg.classList.add("error");
+        return;
+    }
 
-  const { data, error } = await supabase
-    .from("traders")
-    .select("id, is_admin")
-    .eq("password", password)
-    .eq("active", true)
-    .limit(1)
-    .maybeSingle();
+    const { data } = await supabase
+        .from("traders")
+        .select("id, is_admin")
+        .eq("password", password)
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
 
-  if (!data) {
-    loginMsg.textContent = "Neplatné heslo.";
-    loginMsg.classList.add("error");
-    return;
-  }
+    if (!data) {
+        loginMsg.textContent = "Neplatné heslo.";
+        loginMsg.classList.add("error");
+        return;
+    }
 
-  currentTraderId = data.id;
-  currentTraderName = name;
-  currentIsAdmin = data.is_admin === true;
+    currentTraderId = data.id;
+    currentTraderName = name;
+    currentIsAdmin = data.is_admin === true;
 
-  userLabel.textContent = currentTraderName;
-  showApp();
-  nacist();
+    userLabel.textContent = currentTraderName;
+    showApp();
+    nacist();
 }
 
 async function zrusitStareRezervace() {
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  await supabase
-    .from("items")
-    .update({
-      status: "K prodeji",
-      reserved_by: null,
-      reserved_for: null,
-      reserved_at: null,
-      paid: false
-    })
-    .lt("reserved_at", cutoff)
-    .eq("status", "Rezervováno");
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    await supabase
+        .from("items")
+        .update({
+            status: "K prodeji",
+            reserved_by: null,
+            reserved_for: null,
+            reserved_at: null,
+            paid: false
+        })
+        .lt("reserved_at", cutoff)
+        .eq("status", "Rezervováno");
 }
 
 async function nacist() {
-  debug("Načítám data…");
-  listEl.textContent = "Načítám…";
+    debug("Načítám data…");
+    listEl.textContent = "Načítám…";
 
-  await zrusitStareRezervace();
+    await zrusitStareRezervace();
 
-  const { data, error } = await supabase
-    .from("items")
-    .select("id,priority_number,status,price,reserved_by,reserved_for,reserved_at,paid")
-    .order("priority_number", { ascending: true });
+    const { data } = await supabase
+        .from("items")
+        .select("id,priority_number,status,price,reserved_by,reserved_for,reserved_at,paid")
+        .order("priority_number", { ascending: true });
 
-  const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === currentTraderName);
-  vykresli(data, moje);
+    const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === currentTraderName);
+
+    vykresli(data, moje);
 }
 
 function vykresli(data, moje) {
-  let html = "";
+    let html = "";
 
-  // --- MOJE REZERVACE ---
-  if (moje.length > 0) {
-    html += `<h2>Moje rezervace (${moje.length})</h2>`;
-    moje.forEach(r => {
+    if (moje.length > 0) {
+        html += `<h2>Moje rezervace (${moje.length})</h2>`;
 
-      const trida =
-        r.paid === true ? "zaplaceno" :
-        r.status === "Prodáno" ? "prodano" :
-        r.status === "Rezervováno" ? "rezervovano" : "";
+        moje.forEach(r => {
+            const trida =
+                r.paid === true ? "zaplaceno" :
+                r.status === "Prodáno" ? "prodano" :
+                r.status === "Rezervováno" ? "rezervovano" : "";
 
-      // LOGIKA TLAČÍTEK
-      let tlacitka = "";
+            let tlacitka = "";
 
-      if (r.paid === true) {
-        tlacitka = ""; // zaplaceno → nic
-      } else if (r.status === "Prodáno") {
-        tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplaceno</button>`;
-      } else {
-        tlacitka = `
-          <button data-id="${r.id}" class="sell-btn">Prodáno</button>
-          <button data-id="${r.id}" class="paid-btn">Zaplaceno</button>
-          <button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
-        `;
-      }
+            if (r.paid === true) {
+                tlacitka = "";
+            } else if (r.status === "Prodáno") {
+                tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplaceno</button>`;
+            } else {
+                tlacitka = `
+                    <button data-id="${r.id}" class="sell-btn">Prodáno</button>
+                    <button data-id="${r.id}" class="paid-btn">Zaplaceno</button>
+                    <button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
+                `;
+            }
 
-      html += `
-      <div class="row ${trida}">
-        <div><span class="badge">#${r.id}</span></div>
-        <div>
-          <b>Priorita ${r.priority_number}</b><br>
-          <span class="muted">Cena: ${formatCena(r.price)}</span><br>
-          <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
-          <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span><br>
-          <span class="muted">Stav: ${r.status}</span>
-        </div>
-        <div class="actions">${tlacitka}</div>
-      </div>`;
+            html += `
+            <div class="row ${trida}">
+                <div><span class="badge">#${r.id}</span></div>
+                <div>
+                    <b>Priorita ${r.priority_number}</b><br>
+                    <span class="muted">Cena: ${formatCena(r.price)}</span><br>
+                    <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
+                    <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span><br>
+                    <span class="muted">Stav: ${r.status}</span>
+                </div>
+                <div class="actions">${tlacitka}</div>
+            </div>`;
+        });
+    }
+
+    const dostupne = data.filter(r => r.status === "K prodeji");
+
+    html += `<h2>Dostupné akcie (${dostupne.length})</h2>`;
+
+    dostupne.forEach(r => {
+        html += `
+        <div class="row">
+            <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
+            <div>
+                <div><b>Akcie #${r.id}</b></div>
+                <div class="muted">Stav: ${r.status}</div>
+            </div>
+            <div><b>${formatCena(r.price)}</b></div>
+            <div class="actions">
+                <input type="number" min="1000000" step="1000" value="${r.price}" id="cena-${r.id}" style="width:140px" />
+                <input type="text" placeholder="Jméno zákazníka" id="zakaznik-${r.id}" style="width:160px" />
+                <button class="primary" data-id="${r.id}">Rezervovat</button>
+            </div>
+        </div>`;
     });
-  }
 
-  // --- DOSTUPNÉ AKCIE ---
-  const dostupne = data.filter(r => r.status === "K prodeji");
+    listEl.innerHTML = html;
 
-  html += `<h2>Dostupné akcie (${dostupne.length})</h2>`;
+    listEl.querySelectorAll(".sell-btn").forEach(btn => {
+        btn.addEventListener("click", () => oznacitProdej(btn.dataset.id));
+    });
 
-  dostupne.forEach(r => {
-    html += `
-    <div class="row">
-      <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
-      <div>
-        <div><b>Akcie #${r.id}</b></div>
-        <div class="muted">Stav: ${r.status}</div>
-      </div>
-      <div><b>${formatCena(r.price)}</b></div>
-      <div class="actions">
-        <input type="number" min="1000000" step="1000" value="${r.price}" id="cena-${r.id}" style="width:140px" />
-        <input type="text" placeholder="Jméno zákazníka" id="zakaznik-${r.id}" style="width:160px" />
-        <button class="primary" data-id="${r.id}">Rezervovat</button>
-      </div>
-    </div>`;
-  });
+    listEl.querySelectorAll(".paid-btn").forEach(btn => {
+        btn.addEventListener("click", () => oznacitZaplaceno(btn.dataset.id));
+    });
 
-  listEl.innerHTML = html;
+    listEl.querySelectorAll(".cancel-btn").forEach(btn => {
+        btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
+    });
 
-  // EVENTY
-  listEl.querySelectorAll(".sell-btn").forEach(btn => {
-    btn.addEventListener("click", () => oznacitProdej(btn.dataset.id));
-  });
-
-  listEl.querySelectorAll(".paid-btn").forEach(btn => {
-    btn.addEventListener("click", () => oznacitZaplaceno(btn.dataset.id));
-  });
-
-  listEl.querySelectorAll(".cancel-btn").forEach(btn => {
-    btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
-  });
-
-  listEl.querySelectorAll("button.primary").forEach(btn => {
-    btn.addEventListener("click", () => rezervovat(btn.dataset.id));
-  });
+    listEl.querySelectorAll("button.primary").forEach(btn => {
+        btn.addEventListener("click", () => rezervovat(btn.dataset.id));
+    });
 }
 
 async function rezervovat(id) {
-  const inputCena = document.getElementById("cena-" + id);
-  const inputZakaznik = document.getElementById("zakaznik-" + id);
+    const inputCena = document.getElementById("cena-" + id);
+    const inputZakaznik = document.getElementById("zakaznik-" + id);
 
-  const novaCena = parseInt(inputCena.value, 10);
-  const zakaznik = inputZakaznik.value.trim();
+    const novaCena = parseInt(inputCena.value, 10);
+    const zakaznik = inputZakaznik.value.trim();
 
-  if (!zakaznik) {
-    alert("Zadejte jméno zákazníka.");
-    return;
-  }
+    if (!zakaznik) {
+        alert("Zadejte jméno zákazníka.");
+        return;
+    }
 
-  await supabase
-    .from("items")
-    .update({
-      status: "Rezervováno",
-      price: novaCena,
-      reserved_by: currentTraderName,
-      reserved_for: zakaznik,
-      reserved_at: new Date().toISOString()
-    })
-    .eq("id", id)
-    .eq("status", "K prodeji");
+    await supabase
+        .from("items")
+        .update({
+            status: "Rezervováno",
+            price: novaCena,
+            reserved_by: currentTraderName,
+            reserved_for: zakaznik,
+            reserved_at: new Date().toISOString()
+        })
+        .eq("id", id)
+        .eq("status", "K prodeji");
 
-  nacist();
+    nacist();
 }
 
 async function oznacitProdej(id) {
-  await supabase.from("items").update({ status: "Prodáno" }).eq("id", id);
-  nacist();
+    await supabase.from("items").update({ status: "Prodáno" }).eq("id", id);
+    nacist();
 }
 
 async function oznacitZaplaceno(id) {
-  await supabase.from("items").update({ paid: true }).eq("id", id);
-  nacist();
+    await supabase
+        .from("items")
+        .update({
+            paid: true,
+            status: "Zaplaceno"
+        })
+        .eq("id", id);
+
+    nacist();
 }
 
 async function zrusitRezervaci(id) {
-  await supabase
-    .from("items")
-    .update({
-      status: "K prodeji",
-      reserved_by: null,
-      reserved_for: null,
-      reserved_at: null,
-      paid: false
-    })
-    .eq("id", id);
+    await supabase
+        .from("items")
+        .update({
+            status: "K prodeji",
+            reserved_by: null,
+            reserved_for: null,
+            reserved_at: null,
+            paid: false
+        })
+        .eq("id", id);
 
-  nacist();
+    nacist();
 }
 
 loginBtn.addEventListener("click", handleLogin);
+
 loginPasswordInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") handleLogin();
+    if (e.key === "Enter") handleLogin();
 });
 
 logoutBtn.addEventListener("click", () => {
-  showLogin();
-  listEl.textContent = "";
+    showLogin();
+    listEl.textContent = "";
 });
 
 showLogin();
