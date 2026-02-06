@@ -1,139 +1,152 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <title>Rezervační systém</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    .hidden { display: none; }
-    .row { border: 1px solid #ccc; padding: 10px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
-    .actions button { margin-left: 5px; font-size: 1.1em; padding: 8px 14px; border: none; cursor: pointer; }
-    .badge { background: #ddd; padding: 3px 6px; border-radius: 4px; }
-    .muted { color: #666; font-size: 0.9em; }
-    .primary { background: #007bff; color: white; border: none; padding: 6px 10px; cursor: pointer; }
-    .error { color: red; }
-    .rezervovano { border: 2px solid #3b82f6; }
-    .prodano { border: 2px solid #22c55e; }
-    .zaplaceno { border: 2px solid #ff0033; }
-    .sell-btn { background: #22c55e; color: #fff; }
-    .paid-btn { background: #facc15; color: #111; }
-    .cancel-btn { background: #ff0033; color: #fff; }
+<meta charset="UTF-8">
+<title>Rezervační systém</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 20px; }
+.hidden { display: none; }
+.row { border: 1px solid #ccc; padding: 10px; margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+.actions button { margin-left: 5px; font-size: 1.1em; padding: 8px 14px; border: none; cursor: pointer; }
+.badge { background: #ddd; padding: 3px 6px; border-radius: 4px; }
+.muted { color: #666; font-size: 0.9em; }
+.primary { background: #007bff; color: white; border: none; padding: 6px 10px; cursor: pointer; }
+.error { color: red; }
 
-    /* Větší přihlašovací stránka */
-    #login-section {
-      max-width: 420px;
-      margin: 80px auto;
-      padding: 40px;
-      border: 2px solid #ccc;
-      border-radius: 12px;
-      background: #f9f9f9;
-      font-size: 1.2em;
-    }
-    #login-section input {
-      width: 100%;
-      padding: 14px;
-      font-size: 1.1em;
-      margin-bottom: 20px;
-      box-sizing: border-box;
-    }
-    #login-btn {
-      width: 100%;
-      padding: 16px;
-      font-size: 1.3em;
-      background: #007bff;
-      color: white;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    #login-btn:hover { background: #005fcc; }
+/* Barevné bloky podle stavu */
+.rezervovano {
+  border: 2px solid #3b82f6;
+  background: #dbeafe;
+}
+.prodano {
+  border: 2px solid #22c55e;
+  background: #dcfce7;
+}
+.zaplaceno {
+  border: 2px solid #facc15;
+  background: #fef9c3;
+}
 
-    /* Accordion pro moje rezervace */
-    .accordion { margin-top: 10px; }
-    .acc-header {
-      background: #eee;
-      padding: 10px;
-      cursor: pointer;
-      border: 1px solid #ccc;
-      margin-top: 10px;
-      font-size: 1.05em;
-    }
-    .acc-body.hidden { display: none; }
-    .acc-body { padding: 5px 0; }
+.sell-btn { background: #22c55e; color: #fff; }
+.paid-btn { background: #facc15; color: #111; }
+.cancel-btn { background: #ff0033; color: #fff; }
 
-    /* Hromadná tlačítka */
-    .bulk-actions { margin: 10px 0; }
-    .bulk-actions button { margin-right: 8px; }
+/* Větší přihlašovací stránka */
+#login-section {
+  max-width: 420px;
+  margin: 80px auto;
+  padding: 40px;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  background: #f9f9f9;
+  font-size: 1.2em;
+}
+#login-section input {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1em;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+#login-btn {
+  width: 100%;
+  padding: 16px;
+  font-size: 1.3em;
+  background: #007bff;
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+#login-btn:hover { background: #005fcc; }
 
-    /* Jedno "hlavní" tlačítko vpravo nad dostupnými akciemi */
-    .available-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 6px 0 10px;
-    }
-    .available-actions { display: flex; gap: 8px; }
+/* Accordion pro moje rezervace */
+.accordion { margin-top: 10px; }
+.acc-header {
+  background: #eee;
+  padding: 10px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  margin-top: 10px;
+  font-size: 1.05em;
+}
+.acc-body.hidden { display: none; }
+.acc-body { padding: 5px 0; }
 
-    /* Brand nadpis nad loginem */
-    .brand {
-      text-align: center;
-      font-size: 2.2em;
-      font-weight: 800;
-      letter-spacing: .5px;
-      margin: 28px 0 -30px;
-      background: linear-gradient(90deg,#0ea5e9,#22c55e,#f59e0b);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
+/* Hromadná tlačítka */
+.bulk-actions { margin: 10px 0; }
+.bulk-actions button { margin-right: 8px; }
 
-    /* Modal: Hromadná rezervace */
-    .modal.hidden { display: none; }
-    .modal { position: fixed; inset: 0; z-index: 9999; }
-    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
-    .modal-card {
-      position: relative;
-      max-width: 520px;
-      margin: 8vh auto;
-      background: #fff;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      padding: 20px 20px 16px;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.2);
-    }
-    .modal-card h3 { margin: 0 0 4px; }
-    .modal-card .muted { display: block; margin-bottom: 12px; }
-    .modal-card label { display:block; margin: 10px 0 6px; font-weight: 600; }
-    .modal-card input[type="text"],
-    .modal-card input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      box-sizing: border-box;
-      font-size: 1.05em;
-    }
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 14px;
-    }
-    .modal-actions .cancel-btn { background: #777; color: #fff; }
-    .modal.processing { opacity: .9; pointer-events: none; }
+/* Jedno "hlavní" tlačítko vpravo nad dostupnými akciemi */
+.available-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0 10px;
+}
+.available-actions { display: flex; gap: 8px; }
 
-    .primary:hover { background: #005fcc; }
-    .actions button:hover { filter: brightness(0.96); }
-    input[type="text"], input[type="number"] {
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    input[type="text"]:focus, input[type="number"]:focus {
-      outline: none;
-      border-color: #007bff;
-      box-shadow: 0 0 0 3px rgba(0,123,255,.15);
-    }
-    .primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  </style>
+/* Brand nadpis nad loginem */
+.brand {
+  text-align: center;
+  font-size: 2.2em;
+  font-weight: 800;
+  letter-spacing: .5px;
+  margin: 28px 0 -30px;
+  background: linear-gradient(90deg,#0ea5e9,#22c55e,#f59e0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Modal: Hromadná rezervace */
+.modal.hidden { display: none; }
+.modal { position: fixed; inset: 0; z-index: 9999; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+.modal-card {
+  position: relative;
+  max-width: 520px;
+  margin: 8vh auto;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  padding: 20px 20px 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+}
+.modal-card h3 { margin: 0 0 4px; }
+.modal-card .muted { display: block; margin-bottom: 12px; }
+.modal-card label { display:block; margin: 10px 0 6px; font-weight: 600; }
+.modal-card input[type="text"],
+.modal-card input[type="number"] {
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  font-size: 1.05em;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+.modal-actions .cancel-btn { background: #777; color: #fff; }
+.modal.processing { opacity: .9; pointer-events: none; }
+
+.primary:hover { background: #005fcc; }
+.actions button:hover { filter: brightness(0.96); }
+
+input[type="text"], input[type="number"] {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+input[type="text"]:focus, input[type="number"]:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0,123,255,.15);
+}
+.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
 </head>
 <body>
 
@@ -268,7 +281,6 @@ document.addEventListener("DOMContentLoaded", () => {
     currentTraderName = name;
     currentIsAdmin = data.is_admin === true;
     userLabel.textContent = currentTraderName;
-
     showApp();
     nacist();
   }
@@ -345,14 +357,17 @@ document.addEventListener("DOMContentLoaded", () => {
           `;
         }
 
+        const checkboxHtml = r.paid === true
+          ? ""
+          : `<input type="checkbox" class="bulk" data-id="${r.id}">`;
+
         const blok = `
           <div class="row ${trida}">
             <div>
-              <input type="checkbox" class="bulk" data-id="${r.id}">
+              ${checkboxHtml}
               <span class="badge">#${r.id}</span>
             </div>
             <div>
-              <b>Priorita ${r.priority_number}</b><br>
               <span class="muted">Cena: ${formatCena(r.price)}</span><br>
               <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
               <span class="muted">Rezervováno: ${r.reserved_at ? new Date(r.reserved_at).toLocaleString("cs-CZ") : "-"}</span><br>
@@ -410,10 +425,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="row">
           <div>
             <input type="checkbox" class="bulk" data-id="${r.id}">
-            <span class="badge">Priorita: <b>${r.priority_number}</b></span>
+            <span class="badge">#${r.id}</span>
           </div>
           <div>
-            <div><b>Akcie #${r.id}</b></div>
             <div class="muted">Stav: ${r.status}</div>
           </div>
           <div><b>${formatCena(r.price)}</b></div>
@@ -434,15 +448,12 @@ document.addEventListener("DOMContentLoaded", () => {
     listEl.querySelectorAll(".sell-btn").forEach(btn => {
       btn.addEventListener("click", () => oznacitProdej(btn.dataset.id));
     });
-
     listEl.querySelectorAll(".paid-btn").forEach(btn => {
       btn.addEventListener("click", () => oznacitZaplaceno(btn.dataset.id));
     });
-
     listEl.querySelectorAll(".cancel-btn").forEach(btn => {
       btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
     });
-
     listEl.querySelectorAll("button.primary").forEach(btn => {
       if (btn.id !== "bulk-reserve") {
         btn.addEventListener("click", () => rezervovat(btn.dataset.id));
@@ -509,7 +520,6 @@ document.addEventListener("DOMContentLoaded", () => {
       .from("items")
       .update({ status: "Prodáno" })
       .eq("id", id);
-
     nacist();
   }
 
@@ -521,7 +531,6 @@ document.addEventListener("DOMContentLoaded", () => {
         status: "Zaplaceno"
       })
       .eq("id", id);
-
     nacist();
   }
 
@@ -536,51 +545,50 @@ document.addEventListener("DOMContentLoaded", () => {
         paid: false
       })
       .eq("id", id);
-
     nacist();
   }
 
-  function getSelectedIds() {
-    return Array.from(document.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
+  function getSelectedIds(containerSelector) {
+    const root = containerSelector ? document.querySelector(containerSelector) : document;
+    if (!root) return [];
+    return Array.from(root.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
   }
 
   async function bulkSell() {
-    const ids = getSelectedIds();
+    // pouze z "Rezervované"
+    const ids = getSelectedIds("#rez");
     if (ids.length === 0) {
-      alert("Nic není vybráno.");
+      alert("Nic není vybráno v sekci Rezervované.");
       return;
     }
-
     await supabase
       .from("items")
       .update({ status: "Prodáno" })
       .in("id", ids);
-
     nacist();
   }
 
   async function bulkPaid() {
-    const ids = getSelectedIds();
+    // pouze z "Prodáno"
+    const ids = getSelectedIds("#pro");
     if (ids.length === 0) {
-      alert("Nic není vybráno.");
+      alert("Nic není vybráno v sekci Prodáno.");
       return;
     }
-
     await supabase
       .from("items")
       .update({ status: "Zaplaceno", paid: true })
       .in("id", ids);
-
     nacist();
   }
 
   async function bulkCancel() {
-    const ids = getSelectedIds();
+    // pouze z "Rezervované" – nezruší prodané ani zaplacené
+    const ids = getSelectedIds("#rez");
     if (ids.length === 0) {
-      alert("Nic není vybráno.");
+      alert("Nic není vybráno v sekci Rezervované.");
       return;
     }
-
     await supabase
       .from("items")
       .update({
@@ -591,7 +599,6 @@ document.addEventListener("DOMContentLoaded", () => {
         paid: false
       })
       .in("id", ids);
-
     nacist();
   }
 
@@ -671,5 +678,6 @@ document.addEventListener("DOMContentLoaded", () => {
   showLogin();
 });
 </script>
+
 </body>
 </html>
