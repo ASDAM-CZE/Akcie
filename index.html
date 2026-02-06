@@ -29,11 +29,23 @@ const supabase = supabase.createClient(
 );
 
 async function load() {
-  const { data } = await supabase
+  const list = document.getElementById("list");
+  list.innerHTML = "Načítám...";
+
+  const { data, error } = await supabase
     .from("items")
-    .select("id, symbol, name, status")
-    .order("symbol");
-  render(data || []);
+    .select("*");
+
+  console.log("DATA:", data);
+  console.log("ERROR:", error);
+
+  if (error) {
+    list.innerHTML = "CHYBA: " + error.message;
+    return;
+  }
+
+  list.innerHTML = "Načteno řádků: " + (data?.length ?? 0);
+  
 }
 
 async function reserve(id) {
