@@ -6,46 +6,92 @@
   <title>Dostupné akcie</title>
 
   <style>
-    body { font-family: system-ui, -apple-system, Arial, sans-serif; margin:0; background:#fff; }
-    .wrap { max-width: 960px; margin: 60px auto; padding: 0 16px; text-align:center; }
-    h1 { margin-bottom: 14px; }
-
-    .top { display:flex; justify-content:center; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 12px; }
-    input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; width: 280px; font-size: 14px; }
-
-    .muted { color:#666; font-size:14px; }
-    .debug { margin: 10px auto 14px; padding: 10px; border:1px solid #ddd; border-radius: 10px; text-align:left; max-width: 900px; background:#fafafa; }
-
-    .row{
+    body {
+      font-family: system-ui, -apple-system, Arial, sans-serif;
+      margin: 0;
+      background: #fff;
+    }
+    .wrap {
+      max-width: 1000px;
+      margin: 60px auto;
+      padding: 0 16px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 16px;
+    }
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    .top {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .row {
       border: 1px solid #ddd;
       border-radius: 10px;
-      padding: 12px;
+      padding: 14px;
       margin: 12px 0;
-      text-align: left;
-
-      display:grid;
-      grid-template-columns: 160px 1fr 160px 280px;
+      display: grid;
+      grid-template-columns: 140px 1fr 160px 320px;
       gap: 10px;
-      align-items:center;
+      align-items: center;
+      text-align: left;
     }
-
+    .muted {
+      color: #666;
+      font-size: 14px;
+    }
     .badge {
-      display:inline-block;
+      display: inline-block;
       padding: 4px 8px;
       border-radius: 999px;
       border: 1px solid #ddd;
       font-size: 12px;
     }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #f6f6f6;
+    }
+    button.primary {
+      background: #e8f3ff;
+    }
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+    .debug {
+      margin: 10px auto 16px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      max-width: 960px;
+      background: #fafafa;
+      text-align: left;
+    }
 
-    .actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
-    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; cursor:pointer; background:#f7f7f7; }
-    button.primary { background:#e8f3ff; }
-    button.danger { background:#ffecec; }
-    button:disabled { opacity:.5; cursor:not-allowed; }
-
-    @media (max-width: 760px){
-      .row { grid-template-columns: 1fr; }
-      .actions { justify-content:flex-start; }
+    @media (max-width: 800px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+      .actions {
+        justify-content: flex-start;
+      }
     }
   </style>
 
@@ -54,10 +100,10 @@
 
 <body>
   <div class="wrap">
-    <h1>Dostupné akcie (verze 200)</h1>
+    <h1>Dostupné akcie (verze 300)</h1>
 
     <div class="top">
-      <label for="user">Jméno obchodníka:</label>
+      <label>Jméno obchodníka:</label>
       <input id="user" placeholder="např. Petr" />
     </div>
 
@@ -65,133 +111,86 @@
     <div id="list" class="muted">Načítám…</div>
   </div>
 
-  <script defer>
-    document.addEventListener("DOMContentLoaded", () => {
-      const dbg = (msg) => {
-        document.getElementById("debug").textContent = msg;
-        console.log("[INFO]", msg);
-      };
+<script defer>
+document.addEventListener("DOMContentLoaded", () => {
 
-      if (!window.supabase) {
-        dbg("Chyba: nepodařilo se načíst knihovnu Supabase (síť / blokace CDN).");
-        document.getElementById("list").textContent = "Chyba: Supabase se nenačetlo.";
-        return;
-      }
+  const MIN_CENA = 1000000;
 
-      const supabase = window.supabase.createClient(
-        "https://pureguxhuoskbrtavwkp.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
-      );
+  const debug = (txt) => {
+    document.getElementById("debug").textContent = txt;
+    console.log(txt);
+  };
 
-      function jmeno() {
-        return document.getElementById("user").value.trim();
-      }
+  const supabase = window.supabase.createClient(
+    "https://pureguxhuoskbrtavwkp.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
+  );
 
-      function cenaFmt(x) {
-        if (x === null || x === undefined || x === "") return "";
-        const n = Number(x);
-        if (Number.isNaN(n)) return String(x);
-        return new Intl.NumberFormat("cs-CZ").format(n) + " Kč";
-      }
+  const jmeno = () => document.getElementById("user").value.trim();
 
-      function vykresli(radky) {
-        const el = document.getElementById("list");
+  const formatCena = (c) =>
+    new Intl.NumberFormat("cs-CZ").format(c) + " Kč";
 
-        // ukazujeme JEN "K prodeji"
-        const dostupne = (radky || []).filter(r => r.status === "K prodeji");
+  function vykresli(data) {
+    const el = document.getElementById("list");
 
-        if (dostupne.length === 0) {
-          el.textContent = "Žádné akcie k prodeji.";
-          return;
-        }
+    const dostupne = data
+      .filter(r => r.status === "K prodeji")
+      .sort((a,b) => (a.priority_number ?? 0) - (b.priority_number ?? 0));
 
-        // řazení podle priority_number
-        dostupne.sort((a,b) => Number(a.priority_number ?? 0) - Number(b.priority_number ?? 0));
+    if (dostupne.length === 0) {
+      el.textContent = "Žádné akcie k prodeji.";
+      return;
+    }
 
-        el.innerHTML = `<div class="muted" style="margin-bottom:10px;">K prodeji: ${dostupne.length}</div>`;
+    el.innerHTML = `<div class="muted">K prodeji: ${dostupne.length}</div>`;
 
-        dostupne.forEach(r => {
-          el.innerHTML += `
-            <div class="row">
-              <div><span class="badge">Priorita: <b>${r.priority_number ?? ""}</b></span></div>
+    dostupne.forEach(r => {
+      el.innerHTML += `
+        <div class="row">
+          <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
 
-              <div>
-                <div><b>Akcie #${r.id}</b></div>
-                <div class="muted">Stav: ${r.status}</div>
-              </div>
+          <div>
+            <div><b>Akcie #${r.id}</b></div>
+            <div class="muted">Stav: ${r.status}</div>
+          </div>
 
-              <div><b>${cenaFmt(r.price)}</b></div>
+          <div><b>${formatCena(r.price)}</b></div>
 
-              <div class="actions">
-                <button class="primary" onclick="rezervovat(${r.id})">Rezervovat</button>
-              </div>
-            </div>
-          `;
-        });
-      }
-
-      async function nacist() {
-        dbg("Načítám data z databáze…");
-        document.getElementById("list").textContent = "Načítám…";
-
-        // DŮLEŽITÉ: sloupce s mezerou musí být v uvozovkách
-        const { data, error } = await supabase
-          .from("items")
-          .select('id,priority_number,status,price,"reserved by","sold by"')
-          .order("priority_number", { ascending: true });
-
-        if (error) {
-          dbg("CHYBA (SELECT): " + error.message);
-          document.getElementById("list").textContent = "CHYBA (SELECT): " + error.message;
-          return;
-        }
-
-        dbg("Načteno řádků: " + (data ? data.length : 0));
-        vykresli(data || []);
-      }
-
-      async function rezervovat(id) {
-        const u = jmeno();
-        if (!u) return alert("Zadej jméno obchodníka");
-
-        // ochrana proti dvojité rezervaci:
-        // projde jen pokud je status stále "K prodeji"
-        const { error } = await supabase
-          .from("items")
-          .update({ status: "Rezervována", "reserved by": u })
-          .eq("id", id)
-          .eq("status", "K prodeji");
-
-        if (error) return alert("CHYBA (rezervace): " + error.message);
-
-        await nacist();
-      }
-
-      // kdyby ses rozhodl přidat tlačítko prodáno později:
-      async function prodat(id) {
-        const u = jmeno();
-        if (!u) return alert("Zadej jméno obchodníka");
-
-        // bezpečný prodej: jen když je rezervována A rezervoval ji ten samý člověk
-        const { error } = await supabase
-          .from("items")
-          .update({ status: "Nedostupná", "sold by": u })
-          .eq("id", id)
-          .eq("status", "Rezervována")
-          .eq("reserved by", u);
-
-        if (error) return alert("CHYBA (prodej): " + error.message);
-
-        await nacist();
-      }
-
-      // pro onclick
-      window.rezervovat = rezervovat;
-      window.prodat = prodat;
-
-      nacist();
+          <div class="actions">
+            <input
+              type="number"
+              min="${MIN_CENA}"
+              step="1000"
+              value="${r.price}"
+              id="cena-${r.id}"
+              style="width:140px"
+            />
+            <button class="primary" onclick="rezervovat(${r.id})">
+              Rezervovat
+            </button>
+          </div>
+        </div>
+      `;
     });
-  </script>
-</body>
-</html>
+  }
 
+  async function nacist() {
+    debug("Načítám data…");
+
+    const { data, error } = await supabase
+      .from("items")
+      .select('id,priority_number,status,price,"reserved by","sold by"')
+      .order("priority_number", { ascending: true });
+
+    if (error) {
+      debug("CHYBA: " + error.message);
+      document.getElementById("list").textContent = error.message;
+      return;
+    }
+
+    debug("Načteno řádků: " + data.length);
+    vykresli(data);
+  }
+
+  async function rezervova
