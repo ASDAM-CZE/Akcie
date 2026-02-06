@@ -1,95 +1,79 @@
 <!doctype html>
 <html lang="cs">
 <head>
-<meta charset="utf-8">
-<title>Akcie – dostupnost</title>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<style>
-body { font-family: system-ui; max-width: 800px; margin: auto; padding: 20px }
-.row { border:1px solid #ccc; padding:10px; margin:8px 0; border-radius:10px }
-.open { background:#fff }
-.reserved { background:#fff7cc }
-.sold { background:#e6ffe6 }
-button { margin-right:5px }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dostupné akcie</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Arial, sans-serif; margin: 0; }
+    .wrap { max-width: 780px; margin: 60px auto; padding: 0 16px; }
+    h1 { text-align: center; margin: 0 0 24px; }
+    .row { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin: 10px 0; }
+    .muted { color: #666; font-size: 14px; }
+    input { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 240px; }
+    button { padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; margin-right: 8px; }
+  </style>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <div class="wrap">
+    <h1>Dostupné akcie</h1>
 
-<h1>Dostupné akcie</h1>
+    <div style="display:flex; gap:12px; align-items:center; justify-content:center; margin-bottom:18px;">
+      <label for="user">Jméno obchodníka:</label>
+      <input id="user" placeholder="např. Petr" />
+    </div>
 
-<label>Jméno obchodníka:</label>
-<input id="user" placeholder="např. Petr">
+    <div id="list" class="muted" style="text-align:center;">Načítám...</div>
+  </div>
 
-<div id="list"></div>
+  <script>
+    // 1) DOPLŇ: URL a ANON KEY z tvého Supabase projektu
+    const SUPABASE_URL = "https://pureguxhuoskbrtavwkp.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc";
 
-<script>
-const supabase = supabase.createClient(
-  "https://pureguxhuoskbrtavwkp.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
-);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-<script>
-async function load() {
-  const list = document.getElementById("list");
-  list.innerHTML = "Načítám...";
+    function render(items) {
+      const el = document.getElementById("list");
+      if (!items || items.length === 0) {
+        el.innerHTML = `<div class="muted">Žádné položky (nebo nemáš práva je číst).</div>`;
+        return;
+      }
 
-  const { data, error } = await supabase
-    .from("items")
-    .select("*");
+      el.innerHTML = "";
+      items.forEach(i => {
+        el.innerHTML += `
+          <div class="row">
+            <div><strong>${i.symbol ?? ""}</strong> – ${i.name ?? ""}</div>
+            <div class="muted">stav: ${i.status ?? ""}</div>
+          </div>
+        `;
+      });
+    }
 
-  console.log("DATA:", data);
-  console.log("ERROR:", error);
+    async function load() {
+      const el = document.getElementById("list");
+      el.textContent = "Načítám...";
 
-  if (error) {
-    list.innerHTML = "CHYBA: " + error.message;
-    return;
-  }
+      const { data, error } = await supabase
+        .from("items")
+        .select("*");
 
-  list.innerHTML = "Načteno řádků: " + (data?.length ?? 0);
-}
-</script>
-  
-}
+      console.log("DATA:", data);
+      console.log("ERROR:", error);
 
-async function reserve(id) {
-  const user = document.getElementById("user").value;
-  if (!user) return alert("Zadej jméno");
-  await supabase
-    .from("items")
-    .update({ status:"reserved", reserved_by:user })
-    .eq("id", id)
-    .eq("status","open");
-  load();
-}
+      if (error) {
+        el.textContent = "CHYBA: " + error.message;
+        return;
+      }
 
-async function sell(id) {
-  const user = document.getElementById("user").value;
-  if (!user) return alert("Zadej jméno");
-  await supabase
-    .from("items")
-    .update({ status:"sold", sold_by:user })
-    .eq("id", id)
-    .eq("status","reserved");
-  load();
-}
+      render(data);
+    }
 
-function render(items) {
-  const el = document.getElementById("list");
-  el.innerHTML = "";
-  items.forEach(i => {
-    el.innerHTML += `
-      <div class="row ${i.status}">
-        <b>${i.symbol}</b> – ${i.name}<br>
-        stav: <b>${i.status}</b><br>
-        <button onclick="reserve(${i.id})" ${i.status !== "open" ? "disabled" : ""}>Rezervovat</button>
-        <button onclick="sell(${i.id})" ${i.status !== "reserved" ? "disabled" : ""}>Prodáno</button>
-      </div>
-    `;
-  });
-}
-
-load();
-</script>
-
+    load();
+  </script>
 </body>
 </html>
