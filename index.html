@@ -1,4 +1,54 @@
-<script>
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>Rezervační systém</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .hidden { display: none; }
+    .row { border: 1px solid #ccc; padding: 10px; margin: 8px 0; display: flex; justify-content: space-between; }
+    .actions button { margin-left: 5px; }
+    .badge { background: #ddd; padding: 3px 6px; border-radius: 4px; }
+    .muted { color: #666; font-size: 0.9em; }
+    .primary { background: #007bff; color: white; border: none; padding: 6px 10px; cursor: pointer; }
+    .error { color: red; }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOGIN -->
+  <div id="login-section">
+    <h2>Přihlášení</h2>
+    <div>
+      <label>Jméno:</label><br>
+      <input id="login-name" type="text">
+    </div>
+    <div>
+      <label>Heslo:</label><br>
+      <input id="login-password" type="password">
+    </div>
+    <button id="login-btn">Přihlásit</button>
+    <div id="login-msg" class="error"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="app-section" class="hidden">
+    <h2>Vítejte, <span id="user-label"></span></h2>
+    <button id="logout-btn">Odhlásit</button>
+
+    <h3>Seznam akcií</h3>
+    <div id="list"></div>
+  </div>
+
+  <div id="debug" style="margin-top:20px; color:#888;"></div>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- JS -->
+  <script>
 document.addEventListener("DOMContentLoaded", () => {
   const MIN_CENA = 1000000;
 
@@ -275,4 +325,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   showLogin();
 });
-</script>
+  </script>
+
+</body>
+</html>
