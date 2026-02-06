@@ -162,6 +162,11 @@ body { font-family: Arial, sans-serif; padding: 28px; color: var(--text); backgr
 .available-header { display:flex; justify-content:space-between; align-items:center; margin:6px 0 10px; }
 .available-actions { display:flex; gap:8px; }
 
+/* Hlavičky sladěné barvy podle sekce (obnovené původní barvy) */
+.acc-header[data-target="rez"] { background:#dbeafe; border-color:#3b82f6; color:#0b5ed7; border-radius:8px; padding:10px; }
+.acc-header[data-target="pro"] { background:#dcfce7; border-color:#22c55e; color:#166534; border-radius:8px; padding:10px; }
+.acc-header[data-target="zap"] { background:#fef9c3; border-color:#facc15; color:#92400e; border-radius:8px; padding:10px; }
+
 /* Responsivní */
 @media (max-width:800px){
   .row { flex-direction: column; align-items:flex-start; gap:8px; }
@@ -172,7 +177,7 @@ body { font-family: Arial, sans-serif; padding: 28px; color: var(--text); backgr
 <body>
 
 <!-- Brand -->
-<h1 class="brand">Rezidence Chruděm I</h1>
+<h1 class="brand">Rezidence Chrudim I</h1>
 <div class="brand-sub">Prioritní akcie</div>
 
 <!-- LOGIN -->
@@ -498,17 +503,14 @@ document.addEventListener("DOMContentLoaded", () => {
     listEl.querySelectorAll(".acc-header").forEach(h => {
       const toggleBtn = h.querySelector(".group-toggle");
       h.addEventListener("click", (ev) => {
-        // pokud kliknutí bylo na tlačítko, necháme to projít
         const body = document.getElementById(h.dataset.target);
         if (!body) return;
         const isHidden = body.classList.toggle("hidden");
-        // aktualizovat šipku a aria
         if (toggleBtn) {
           toggleBtn.setAttribute("aria-expanded", (!isHidden).toString());
           toggleBtn.textContent = (!isHidden) ? "▾" : "▸";
         }
       });
-      // také kliknutí přímo na tlačítko
       if (toggleBtn) {
         toggleBtn.addEventListener("click", (ev) => {
           ev.stopPropagation();
