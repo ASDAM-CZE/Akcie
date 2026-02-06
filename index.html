@@ -182,7 +182,9 @@
     </div>
   </div>
 
+  <!-- OPRAVA: správné načtení knihovny Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const debugEl = document.getElementById("debug");
@@ -462,3 +464,51 @@
         if (bulkReserveBtn) bulkReserveBtn.addEventListener("click", openBulkReserveModal);
 
         // Checkboxy jen v dostupných položkách -> rozsvítit/vypnout tlačítko
+        const availableList = document.getElementById("available-list");
+        if (availableList) {
+          availableList.querySelectorAll('input.bulk').forEach(cb => {
+            cb.addEventListener('change', updateBulkReserveState);
+          });
+          updateBulkReserveState(); // inicializace
+        }
+      }
+
+      async function rezervovat(id) {
+        const inputCena = document.getElementById("cena-" + id);
+        const inputZakaznik = document.getElementById("zakaznik-" + id);
+        const novaCena = parseInt(inputCena.value, 10);
+        const zakaznik = (inputZakaznik.value || "").trim();
+        if (!zakaznik) {
+          alert("Zadejte jméno zákazníka.");
+          return;
+        }
+
+        await supabase
+          .from("items")
+          .update({
+            status: "Rezervováno",
+            price: novaCena,
+            reserved_by: currentTraderName,
+            reserved_for: zakaznik,
+            reserved_at: new Date().toISOString()
+          })
+          .eq("id", id)
+          .eq("status", "K prodeji");
+
+        nacist();
+      }
+
+      async function oznacitProdej(id) {
+        await supabase
+          .from("items")
+          .update({ status: "Prodáno" })
+          .eq("id", id);
+        nacist();
+      }
+
+      async function oznacitZaplaceno(id) {
+        await supabase
+          .from("items")
+          .update({
+            paid: true,
+            status: "Zaplaceno"
