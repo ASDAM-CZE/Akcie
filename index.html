@@ -16,7 +16,8 @@
     .prodano { border: 2px solid #22c55e; }
     .zaplaceno { border: 2px solid #ff0033; }
     .sell-btn { background: #22c55e; color: #fff; }
-    .paid-btn { background: #ff0033; color: #fff; }
+    /* Původně červená, nově žlutá – „veselá“ */
+    .paid-btn { background: #facc15; color: #111; }
     .cancel-btn { background: #ff0033; color: #fff; }
 
     /* Větší přihlašovací stránka */
@@ -47,9 +48,7 @@
       cursor: pointer;
       font-weight: bold;
     }
-    #login-btn:hover {
-      background: #005fcc;
-    }
+    #login-btn:hover { background: #005fcc; }
 
     /* Accordion pro moje rezervace */
     .accordion { margin-top: 10px; }
@@ -65,15 +64,74 @@
     .acc-body { padding: 5px 0; }
 
     /* Hromadná tlačítka */
-    .bulk-actions {
-      margin: 10px 0;
+    .bulk-actions { margin: 10px 0; }
+    .bulk-actions button { margin-right: 8px; }
+
+    /* === Lehký polish UI === */
+    .primary:hover { background: #005fcc; }
+    .actions button:hover { filter: brightness(0.96); }
+
+    input[type="text"], input[type="number"] {
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
-    .bulk-actions button {
-      margin-right: 8px;
+    input[type="text"]:focus, input[type="number"]:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0,123,255,.15);
     }
+    .primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Jedno "hlavní" tlačítko vpravo nad dostupnými akciemi */
+    .available-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 0 10px;
+    }
+    .available-actions { display: flex; gap: 8px; }
+
+    /* Brand nadpis nad loginem */
+    .brand {
+      text-align: center;
+      font-size: 2.2em;
+      font-weight: 800;
+      letter-spacing: .5px;
+      margin: 28px 0 -30px;
+      background: linear-gradient(90deg,#0ea5e9,#22c55e,#f59e0b);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* === MODÁLNÍ OKNO: Hromadná rezervace === */
+    .modal.hidden { display: none; }
+    .modal { position: fixed; inset: 0; z-index: 9999; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+    .modal-card {
+      position: relative;
+      max-width: 520px;
+      margin: 8vh auto;
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #ddd;
+      padding: 20px 20px 16px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    }
+    .modal-card h3 { margin: 0 0 4px; }
+    .modal-card .muted { display: block; margin-bottom: 12px; }
+    .modal-card label { display:block; margin: 10px 0 6px; font-weight: 600; }
+    .modal-card input[type="text"],
+    .modal-card input[type="number"] { width: 100%; padding: 12px; box-sizing: border-box; font-size: 1.05em; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .modal-actions .cancel-btn { background: #777; color: #fff; }
+    .modal.processing { opacity: .9; pointer-events: none; }
   </style>
 </head>
 <body>
+
+  <!-- Brand nadpis nad přihlášením -->
+  <h1 class="brand">Rezidence Chrudim 1</h1>
 
   <!-- LOGIN -->
   <div id="login-section">
@@ -101,6 +159,29 @@
 
   <div id="debug" style="margin-top:20px; color:#888;"></div>
 
+  <!-- MODAL: Hromadná rezervace -->
+  <div id="bulkReserveModal" class="modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="brm-title">
+    <div class="modal-backdrop" id="brm-backdrop"></div>
+    <div class="modal-card" role="document">
+      <h3 id="brm-title">Hromadná rezervace</h3>
+      <span class="muted">Počet vybraných položek: <b id="brm-count">0</b></span>
+
+      <label for="brm-customer">Jméno zákazníka</label>
+      <input id="brm-customer" type="text" placeholder="Zadejte jméno zákazníka" />
+
+      <label for="brm-price">Společná cena (Kč)</label>
+      <input id="brm-price" type="number" min="1000000" step="1000" inputmode="numeric" placeholder="1 000 000" />
+      <small class="muted">Tato cena se použije pro všechny vybrané položky.</small>
+
+      <div id="brm-msg" class="error" style="min-height:1.2em; margin-top:6px;"></div>
+
+      <div class="modal-actions">
+        <button id="brm-cancel" class="cancel-btn" type="button">Zrušit</button>
+        <button id="brm-submit" class="primary" type="button">Potvrdit rezervaci</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -114,6 +195,16 @@
       const loginMsg = document.getElementById("login-msg");
       const userLabel = document.getElementById("user-label");
       const logoutBtn = document.getElementById("logout-btn");
+
+      // Modal prvky
+      const brmEl = document.getElementById("bulkReserveModal");
+      const brmCountEl = document.getElementById("brm-count");
+      const brmCustomerEl = document.getElementById("brm-customer");
+      const brmPriceEl = document.getElementById("brm-price");
+      const brmMsgEl = document.getElementById("brm-msg");
+      const brmCancelBtn = document.getElementById("brm-cancel");
+      const brmSubmitBtn = document.getElementById("brm-submit");
+      const brmBackdrop = document.getElementById("brm-backdrop");
 
       let currentTraderId = null;
       let currentTraderName = null;
@@ -145,7 +236,6 @@
       async function handleLogin() {
         const name = loginNameInput.value.trim();
         const password = loginPasswordInput.value.trim();
-
         loginMsg.textContent = "";
         loginMsg.classList.remove("error");
 
@@ -172,8 +262,8 @@
         currentTraderId = data.id;
         currentTraderName = name;
         currentIsAdmin = data.is_admin === true;
-
         userLabel.textContent = currentTraderName;
+
         showApp();
         nacist();
       }
@@ -208,9 +298,25 @@
         vykresli(data, moje);
       }
 
+      // ==== Pomocné funkce pro výběr v "Dostupné akcie" ====
+      function getSelectedAvailableIds() {
+        const container = document.getElementById("available-list");
+        if (!container) return [];
+        return Array.from(container.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
+      }
+
+      function updateBulkReserveState() {
+        const btn = document.getElementById("bulk-reserve");
+        if (!btn) return;
+        const count = getSelectedAvailableIds().length;
+        btn.disabled = count === 0;
+        btn.textContent = count > 0 ? `Hromadně rezervovat (${count})` : "Hromadně rezervovat";
+      }
+
       function vykresli(data, moje) {
         let html = "";
 
+        // --- Moje rezervace / Prodáno / Zaplaceno (původní chování) ---
         if (moje.length > 0) {
           let htmlRez = "";
           let htmlPro = "";
@@ -262,33 +368,43 @@
 
           html += `
             <h2>Moje rezervace (${moje.length})</h2>
-
             <div class="bulk-actions">
               <button id="bulk-sell" class="sell-btn">Hromadně prodat</button>
               <button id="bulk-paid" class="paid-btn">Hromadně zaplatit</button>
               <button id="bulk-cancel" class="cancel-btn">Hromadně zrušit</button>
             </div>
-
             <div class="accordion">
               <h3 class="acc-header" data-target="rez">Rezervované</h3>
               <div id="rez" class="acc-body">${htmlRez || "<div class='muted'>Žádné rezervované položky.</div>"}</div>
-
               <h3 class="acc-header" data-target="pro">Prodáno</h3>
               <div id="pro" class="acc-body hidden">${htmlPro || "<div class='muted'>Žádné prodané položky.</div>"}</div>
-
               <h3 class="acc-header" data-target="zap">Zaplaceno</h3>
               <div id="zap" class="acc-body hidden">${htmlZap || "<div class='muted'>Žádné zaplacené položky.</div>"}</div>
             </div>
           `;
         }
 
+        // --- Dostupné akcie (nové chování) ---
         const dostupne = data.filter(r => r.status === "K prodeji");
-        html += `<h2>Dostupné akcie (${dostupne.length})</h2>`;
 
+        html += `
+          <h2>Dostupné akcie (${dostupne.length})</h2>
+          <div class="available-header">
+            <div class="muted">Vyber položky, pak je hromadně rezervuj k jednomu zákazníkovi.</div>
+            <div class="available-actions">
+              <button id="bulk-reserve" class="primary" disabled>Hromadně rezervovat</button>
+            </div>
+          </div>
+        `;
+
+        let htmlAvail = "";
         dostupne.forEach(r => {
-          html += `
+          htmlAvail += `
             <div class="row">
-              <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
+              <div>
+                <input type="checkbox" class="bulk" data-id="${r.id}">
+                <span class="badge">Priorita: <b>${r.priority_number}</b></span>
+              </div>
               <div>
                 <div><b>Akcie #${r.id}</b></div>
                 <div class="muted">Stav: ${r.status}</div>
@@ -303,6 +419,9 @@
           `;
         });
 
+        html += `<div id="available-list">${htmlAvail || "<div class='muted'>Žádné dostupné položky.</div>"}</div>`;
+
+        // Render
         listEl.innerHTML = html;
 
         // Jednotlivé akce
@@ -316,7 +435,10 @@
           btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
         });
         listEl.querySelectorAll("button.primary").forEach(btn => {
-          btn.addEventListener("click", () => rezervovat(btn.dataset.id));
+          // POZOR: Tohle je per‑řádkové "Rezervovat" pro jednotlivou položku
+          if (btn.id !== "bulk-reserve") {
+            btn.addEventListener("click", () => rezervovat(btn.dataset.id));
+          }
         });
 
         // Accordion
@@ -327,146 +449,16 @@
           });
         });
 
-        // Hromadná tlačítka
+        // Hromadná tlačítka (moje rezervace)
         const bulkSellBtn = document.getElementById("bulk-sell");
         const bulkPaidBtn = document.getElementById("bulk-paid");
         const bulkCancelBtn = document.getElementById("bulk-cancel");
-
         if (bulkSellBtn) bulkSellBtn.addEventListener("click", bulkSell);
         if (bulkPaidBtn) bulkPaidBtn.addEventListener("click", bulkPaid);
         if (bulkCancelBtn) bulkCancelBtn.addEventListener("click", bulkCancel);
-      }
 
-      async function rezervovat(id) {
-        const inputCena = document.getElementById("cena-" + id);
-        const inputZakaznik = document.getElementById("zakaznik-" + id);
-        const novaCena = parseInt(inputCena.value, 10);
-        const zakaznik = inputZakaznik.value.trim();
+        // Jediné tlačítko vpravo pro hromadnou rezervaci dostupných
+        const bulkReserveBtn = document.getElementById("bulk-reserve");
+        if (bulkReserveBtn) bulkReserveBtn.addEventListener("click", openBulkReserveModal);
 
-        if (!zakaznik) {
-          alert("Zadejte jméno zákazníka.");
-          return;
-        }
-
-        await supabase
-          .from("items")
-          .update({
-            status: "Rezervováno",
-            price: novaCena,
-            reserved_by: currentTraderName,
-            reserved_for: zakaznik,
-            reserved_at: new Date().toISOString()
-          })
-          .eq("id", id)
-          .eq("status", "K prodeji");
-
-        nacist();
-      }
-
-      async function oznacitProdej(id) {
-        await supabase
-          .from("items")
-          .update({ status: "Prodáno" })
-          .eq("id", id);
-
-        nacist();
-      }
-
-      async function oznacitZaplaceno(id) {
-        await supabase
-          .from("items")
-          .update({
-            paid: true,
-            status: "Zaplaceno"
-          })
-          .eq("id", id);
-
-        nacist();
-      }
-
-      async function zrusitRezervaci(id) {
-        await supabase
-          .from("items")
-          .update({
-            status: "K prodeji",
-            reserved_by: null,
-            reserved_for: null,
-            reserved_at: null,
-            paid: false
-          })
-          .eq("id", id);
-
-        nacist();
-      }
-
-      function getSelectedIds() {
-        return Array.from(document.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
-      }
-
-      async function bulkSell() {
-        const ids = getSelectedIds();
-        if (ids.length === 0) {
-          alert("Nic není vybráno.");
-          return;
-        }
-
-        await supabase
-          .from("items")
-          .update({ status: "Prodáno" })
-          .in("id", ids);
-
-        nacist();
-      }
-
-      async function bulkPaid() {
-        const ids = getSelectedIds();
-        if (ids.length === 0) {
-          alert("Nic není vybráno.");
-          return;
-        }
-
-        await supabase
-          .from("items")
-          .update({ status: "Zaplaceno", paid: true })
-          .in("id", ids);
-
-        nacist();
-      }
-
-      async function bulkCancel() {
-        const ids = getSelectedIds();
-        if (ids.length === 0) {
-          alert("Nic není vybráno.");
-          return;
-        }
-
-        await supabase
-          .from("items")
-          .update({
-            status: "K prodeji",
-            reserved_by: null,
-            reserved_for: null,
-            reserved_at: null,
-            paid: false
-          })
-          .in("id", ids);
-
-        nacist();
-      }
-
-      loginBtn.addEventListener("click", handleLogin);
-      loginPasswordInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") handleLogin();
-      });
-
-      logoutBtn.addEventListener("click", () => {
-        showLogin();
-        listEl.textContent = "";
-      });
-
-      showLogin();
-    });
-  </script>
-</body>
-</html>
-
+        // Checkboxy jen v dostupných položkách -> rozsvítit/vypnout tlačítko
