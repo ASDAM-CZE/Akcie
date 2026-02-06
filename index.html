@@ -195,14 +195,35 @@ document.addEventListener("DOMContentLoaded", () => {
     let html = "";
 
     if (moje.length > 0) {
-      html += `<h2>Moje rezervace (${moje.length})</h2>`;
-      moje.forEach(r => {
-        html += `
-          const trida =
-  r.status === "Rezervováno" ? "rezervovano" :
-  r.status === "Prodáno" ? "prodano" :
-  r.paid === true ? "zaplaceno" :
-  "";
+  html += `<h2>Moje rezervace (${moje.length})</h2>`;
+  moje.forEach(r => {
+
+    const trida =
+      r.status === "Rezervováno" ? "rezervovano" :
+      r.status === "Prodáno" ? "prodano" :
+      r.paid === true ? "zaplaceno" :
+      "";
+
+    html += `
+      <div class="row ${trida}">
+        <div><span class="badge">#${r.id}</span></div>
+        <div>
+          <b>Priorita ${r.priority_number}</b><br>
+          <span class="muted">Cena: ${formatCena(r.price)}</span><br>
+          <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
+          <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span><br>
+          <span class="muted">Stav: ${r.status}</span>
+        </div>
+        <div class="actions">
+          <button data-id="${r.id}" class="sell-btn">Prodáno</button>
+          <button data-id="${r.id}" class="paid-btn">Zaplaceno</button>
+          <button data-id="${r.id}" class="cancel-btn">Zrušit</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
 
 const trida =
   r.status === "Rezervováno" ? "rezervovano" :
