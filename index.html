@@ -28,6 +28,7 @@ const supabase = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
 );
 
+<script>
 async function load() {
   const list = document.getElementById("list");
   list.innerHTML = "Načítám...";
@@ -45,6 +46,8 @@ async function load() {
   }
 
   list.innerHTML = "Načteno řádků: " + (data?.length ?? 0);
+}
+</script>
   
 }
 
