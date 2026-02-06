@@ -6,49 +6,66 @@
   <title>Dostupné akcie</title>
 
   <style>
-    body { font-family: system-ui, -apple-system, Arial, sans-serif; margin:0; background:#fff; }
-    .wrap { max-width: 980px; margin: 60px auto; padding: 0 16px; text-align:center; }
-    h1 { margin-bottom: 14px; }
-
-    .top { display:flex; justify-content:center; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom: 12px; }
-    input { padding: 10px; border-radius: 8px; border: 1px solid #ccc; width: 280px; font-size: 14px; }
-
-    .muted { color:#666; font-size:14px; }
-    .debug { margin: 10px auto 14px; padding: 10px; border:1px solid #ddd; border-radius: 10px; text-align:left; max-width: 900px; background:#fafafa; }
-
-    .row{
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      background: #fff;
+      margin: 0;
+    }
+    .wrap {
+      max-width: 800px;
+      margin: 60px auto;
+      padding: 0 16px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      width: 240px;
+    }
+    .row {
       border: 1px solid #ddd;
       border-radius: 10px;
-      padding: 12px;
+      padding: 14px;
       margin: 12px 0;
       text-align: left;
-
-      display:grid;
-      grid-template-columns: 140px 1fr 140px 260px;
-      gap: 10px;
-      align-items:center;
     }
-
-    .badge {
-      display:inline-block;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid #ddd;
-      font-size: 12px;
+    .muted {
+      color: #666;
+      font-size: 14px;
     }
-
-    .actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
-    button { padding: 8px 12px; border-radius: 8px; border: 1px solid #ccc; cursor:pointer; background:#f7f7f7; }
-    button.primary { background:#e8f3ff; }
-    button.danger { background:#ffecec; }
-    button:disabled { opacity:.5; cursor:not-allowed; }
-
-    @media (max-width: 760px){
-      .row { grid-template-columns: 1fr; }
-      .actions { justify-content:flex-start; }
+    button {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #f6f6f6;
+    }
+    button:hover {
+      background: #eee;
+    }
+    .ok {
+      background: #f0fff4;
+      border: 1px solid #b7ebc6;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .error {
+      background: #fff0f0;
+      border: 1px solid #f5b5b5;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
     }
   </style>
 
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -56,152 +73,121 @@
   <div class="wrap">
     <h1>Dostupné akcie</h1>
 
-    <div class="top">
-      <label for="user">Jméno obchodníka:</label>
+    <div style="margin-bottom:20px;">
+      <label>Jméno obchodníka:</label><br />
       <input id="user" placeholder="např. Petr" />
     </div>
 
-    <div id="debug" class="debug muted">Načítám stránku…</div>
+    <div id="info"></div>
     <div id="list" class="muted">Načítám…</div>
   </div>
 
-  <script defer>
-    document.addEventListener("DOMContentLoaded", () => {
-      const dbg = (msg) => {
-        document.getElementById("debug").textContent = msg;
-        console.log("[INFO]", msg);
-      };
+<script>
+  const SUPABASE_URL = "https://pureguxhuoskbrtavwkp.supabase.co";
+  const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc";
 
-      if (!window.supabase) {
-        dbg("Chyba: nepodařilo se načíst knihovnu Supabase (síť / blokace CDN).");
-        document.getElementById("list").textContent = "Chyba: Supabase se nenačetlo.";
-        return;
-      }
+  const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
 
-      const supabase = window.supabase.createClient(
-        "https://pureguxhuoskbrtavwkp.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
-      );
+  function infoOK(text) {
+    document.getElementById("info").innerHTML =
+      `<div class="ok">${text}</div>`;
+  }
 
-      function jmenoObchodnika() {
-        return document.getElementById("user").value.trim();
-      }
+  function infoError(text) {
+    document.getElementById("info").innerHTML =
+      `<div class="error">${text}</div>`;
+  }
 
-      function formatCena(x) {
-        if (x === null || x === undefined || x === "") return "";
-        const n = Number(x);
-        if (Number.isNaN(n)) return String(x);
-        return new Intl.NumberFormat("cs-CZ").format(n) + " Kč";
-      }
+  function render(items) {
+    const el = document.getElementById("list");
 
-      function vykresli(polozky) {
-        const el = document.getElementById("list");
+    if (!items || items.length === 0) {
+      el.textContent = "Žádné akcie k zobrazení.";
+      return;
+    }
 
-        // ZOBRAZÍME JEN TY, CO JSOU "K prodeji"
-        const dostupne = (polozky || []).filter(p => p["Stav"] === "K prodeji");
+    el.innerHTML = "";
 
-        if (dostupne.length === 0) {
-          el.textContent = "Žádné dostupné akcie (K prodeji).";
-          return;
-        }
+    items.forEach(i => {
+      el.innerHTML += `
+        <div class="row">
+          <strong>Priorita:</strong> ${i.priority_number ?? "-"}<br>
+          <strong>Stav:</strong> ${i.status}<br>
+          <strong>Cena:</strong> ${i.price ?? "-"} Kč<br>
 
-        // řadíme podle čísla (priorita)
-        dostupne.sort((a, b) => Number(a["číslo"] ?? 0) - Number(b["číslo"] ?? 0));
+          ${
+            i.status === "K prodeji"
+              ? `<button onclick="rezervovat(${i.id})">Rezervovat</button>`
+              : ""
+          }
 
-        el.innerHTML = `<div class="muted" style="margin-bottom:10px;">Dostupných akcií: ${dostupne.length}</div>`;
-
-        dostupne.forEach(p => {
-          const cislo = (p["číslo"] ?? "");
-          const stav = (p["Stav"] ?? "");
-          const cena = formatCena(p["cena"]);
-          const kdo = p["reserved by"] ? ` • rezervoval: <b>${p["reserved by"]}</b>` : "";
-
-          el.innerHTML += `
-            <div class="row">
-              <div><span class="badge">Číslo: <b>${cislo}</b></span></div>
-
-              <div>
-                <div><b>Akcie #${p.id}</b></div>
-                <div class="muted">Stav: ${stav}${kdo}</div>
-              </div>
-
-              <div>
-                <div><b>${cena}</b></div>
-              </div>
-
-              <div class="actions">
-                <button class="primary" onclick="rezervovat(${p.id})">Rezervovat</button>
-                <button class="danger" onclick="prodat(${p.id})">Prodáno</button>
-              </div>
-            </div>
-          `;
-        });
-      }
-
-      async function nacist() {
-        dbg("Načítám data…");
-        document.getElementById("list").textContent = "Načítám…";
-
-        // POZOR: máš názvy se speciálními znaky a mezerou -> používáme uvozovky
-        const { data, error } = await supabase
-          .from("items")
-          .select('id,status,"číslo","Stav",cena,"reserved by"')
-          .order("id");
-
-        if (error) {
-          dbg("Chyba SELECT: " + error.message);
-          document.getElementById("list").textContent = "CHYBA (SELECT): " + error.message;
-          return;
-        }
-
-        dbg("Načteno řádků: " + (data ? data.length : 0));
-        vykresli(data || []);
-      }
-
-      async function rezervovat(id) {
-        const jmeno = jmenoObchodnika();
-        if (!jmeno) return alert("Prosím zadej jméno obchodníka.");
-
-        // OCHRANA PROTI DUPLICITĚ: rezervační update proběhne jen když je Stav stále "K prodeji"
-        const { error } = await supabase
-          .from("items")
-          .update({
-            "Stav": "Rezervovaná",
-            "reserved by": jmeno
-          })
-          .eq("id", id)
-          .eq("Stav", "K prodeji");
-
-        if (error) return alert("Chyba (rezervace): " + error.message);
-
-        await nacist();
-      }
-
-      async function prodat(id) {
-        const jmeno = jmenoObchodnika();
-        if (!jmeno) return alert("Prosím zadej jméno obchodníka.");
-
-        // Prodej = Nedostupná + uložíme, kdo to udělal (do reserved by, klidně přejmenuj později)
-        const { error } = await supabase
-          .from("items")
-          .update({
-            "Stav": "Nedostupná",
-            "reserved by": jmeno
-          })
-          .eq("id", id)
-          .neq("Stav", "Nedostupná");
-
-        if (error) return alert("Chyba (prodej): " + error.message);
-
-        await nacist();
-      }
-
-      // pro onclick
-      window.rezervovat = rezervovat;
-      window.prodat = prodat;
-
-      nacist();
+          ${
+            i.status === "Rezervována"
+              ? `<button onclick="prodat(${i.id})">Prodat</button>`
+              : ""
+          }
+        </div>
+      `;
     });
-  </script>
+  }
+
+  async function load() {
+    const { data, error } = await supabase
+      .from("items")
+      .select("*")
+      .order("priority_number", { ascending: true });
+
+    if (error) {
+      infoError("CHYBA (SELECT): " + error.message);
+      return;
+    }
+
+    infoOK("Načteno řádků: " + data.length);
+    render(data);
+  }
+
+  async function rezervovat(id) {
+    const user = document.getElementById("user").value;
+    if (!user) {
+      alert("Zadej jméno obchodníka");
+      return;
+    }
+
+    await supabase
+      .from("items")
+      .update({
+        status: "Rezervována",
+        reserved_by: user
+      })
+      .eq("id", id);
+
+    load();
+  }
+
+  async function prodat(id) {
+    const user = document.getElementById("user").value;
+    if (!user) {
+      alert("Zadej jméno obchodníka");
+      return;
+    }
+
+    await supabase
+      .from("items")
+      .update({
+        status: "Nedostupná",
+        sold_by: user
+      })
+      .eq("id", id);
+
+    load();
+  }
+
+  load();
+</script>
+
 </body>
 </html>
