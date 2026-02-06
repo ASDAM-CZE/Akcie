@@ -192,35 +192,79 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function vykresli(data, moje) {
-    let html = "";
+  let html = "";
 
-    if (moje.length > 0) {
-  html += `<h2>Moje rezervace (${moje.length})</h2>`;
-  moje.forEach(r => {
+  // --- MOJE REZERVACE ---
+  if (moje.length > 0) {
+    html += `<h2>Moje rezervace (${moje.length})</h2>`;
+    moje.forEach(r => {
 
-    const trida =
-      r.status === "Rezervováno" ? "rezervovano" :
-      r.status === "Prodáno" ? "prodano" :
-      r.paid === true ? "zaplaceno" :
-      "";
+      const trida =
+        r.status === "Rezervováno" ? "rezervovano" :
+        r.status === "Prodáno" ? "prodano" :
+        r.paid === true ? "zaplaceno" :
+        "";
 
-    html += `
-      <div class="row ${trida}">
-        <div><span class="badge">#${r.id}</span></div>
-        <div>
-          <b>Priorita ${r.priority_number}</b><br>
-          <span class="muted">Cena: ${formatCena(r.price)}</span><br>
-          <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
-          <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span><br>
-          <span class="muted">Stav: ${r.status}</span>
+      html += `
+        <div class="row ${trida}">
+          <div><span class="badge">#${r.id}</span></div>
+          <div>
+            <b>Priorita ${r.priority_number}</b><br>
+            <span class="muted">Cena: ${formatCena(r.price)}</span><br>
+            <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
+            <span class="muted">Rezervováno: ${new Date(r.reserved_at).toLocaleString("cs-CZ")}</span><br>
+            <span class="muted">Stav: ${r.status}</span>
+          </div>
+          <div class="actions">
+            <button data-id="${r.id}" class="sell-btn">Prodáno</button>
+            <button data-id="${r.id}" class="paid-btn">Zaplaceno</button>
+            <button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
+          </div>
         </div>
+      `;
+    });
+  }
+
+  // --- DOSTUPNÉ AKCIE ---
+  const dostupne = data.filter(r => r.status === "K prodeji");
+
+  html += `<h2>Dostupné akcie (${dostupne.length})</h2>`;
+
+  dostupne.forEach(r => {
+    html += `
+      <div class="row">
+        <div><span class="badge">Priorita: <b>${r.priority_number}</b></span></div>
+        <div>
+          <div><b>Akcie #${r.id}</b></div>
+          <div class="muted">Stav: ${r.status}</div>
+        </div>
+        <div><b>${formatCena(r.price)}</b></div>
         <div class="actions">
-          <button data-id="${r.id}" class="sell-btn">Prodáno</button>
-          <button data-id="${r.id}" class="paid-btn">Zaplaceno</button>
-          <button data-id="${r.id}" class="cancel-btn">Zrušit</button>
+          <input type="number" min="1000000" step="1000" value="${r.price}" id="cena-${r.id}" style="width:140px" />
+          <input type="text" placeholder="Jméno zákazníka" id="zakaznik-${r.id}" style="width:160px" />
+          <button class="primary" data-id="${r.id}">Rezervovat</button>
         </div>
       </div>
     `;
+  });
+
+  listEl.innerHTML = html;
+
+  // --- EVENT LISTENERY ---
+  listEl.querySelectorAll(".sell-btn").forEach(btn => {
+    btn.addEventListener("click", () => oznacitProdej(btn.dataset.id));
+  });
+
+  listEl.querySelectorAll(".paid-btn").forEach(btn => {
+    btn.addEventListener("click", () => oznacitZaplaceno(btn.dataset.id));
+  });
+
+  listEl.querySelectorAll(".cancel-btn").forEach(btn => {
+    btn.addEventListener("click", () => zrusitRezervaci(btn.dataset.id));
+  });
+
+  listEl.querySelectorAll("button.primary").forEach(btn => {
+    btn.addEventListener("click", () => rezervovat(btn.dataset.id));
   });
 }
 
