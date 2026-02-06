@@ -4,42 +4,86 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dostupné akcie</title>
+
   <style>
-    body { font-family: system-ui, -apple-system, Arial, sans-serif; margin: 0; }
-    .wrap { max-width: 780px; margin: 60px auto; padding: 0 16px; }
-    h1 { text-align: center; margin: 0 0 24px; }
-    .row { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin: 10px 0; }
-    .muted { color: #666; font-size: 14px; }
-    input { padding: 10px; border: 1px solid #ccc; border-radius: 8px; width: 240px; }
-    button { padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; cursor: pointer; margin-right: 8px; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+      margin: 0;
+      background: #fff;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 60px auto;
+      padding: 0 16px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    input {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 240px;
+      font-size: 14px;
+    }
+    .row {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 10px 0;
+      text-align: left;
+    }
+    .muted {
+      color: #666;
+      font-size: 14px;
+    }
   </style>
 
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
   <div class="wrap">
     <h1>Dostupné akcie</h1>
 
-    <div style="display:flex; gap:12px; align-items:center; justify-content:center; margin-bottom:18px;">
-      <label for="user">Jméno obchodníka:</label>
+    <div style="margin-bottom:20px;">
+      <label>Jméno obchodníka:</label><br />
       <input id="user" placeholder="např. Petr" />
     </div>
 
-    <div id="list" class="muted" style="text-align:center;">Načítám...</div>
+    <div id="list" class="muted">Načítám…</div>
   </div>
 
   <script>
-    // 1) DOPLŇ: URL a ANON KEY z tvého Supabase projektu
+    /* === ZOBRAZENÍ CHYB PŘÍMO NA STRÁNCE === */
+    window.addEventListener("error", (e) => {
+      const el = document.getElementById("list");
+      if (el) el.textContent = "CHYBA (JS): " + e.message;
+    });
+
+    window.addEventListener("unhandledrejection", (e) => {
+      const el = document.getElementById("list");
+      if (el) el.textContent = "CHYBA (Promise): " + (e.reason?.message || e.reason);
+    });
+
+    /* === SUPABASE NASTAVENÍ === */
     const SUPABASE_URL = "https://pureguxhuoskbrtavwkp.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc";
+    const SUPABASE_ANON_KEY =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc";
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
 
+    /* === VYKRESLENÍ DAT === */
     function render(items) {
       const el = document.getElementById("list");
+
       if (!items || items.length === 0) {
-        el.innerHTML = `<div class="muted">Žádné položky (nebo nemáš práva je číst).</div>`;
+        el.textContent = "Žádné položky (nebo nemáš práva je číst).";
         return;
       }
 
@@ -47,16 +91,17 @@
       items.forEach(i => {
         el.innerHTML += `
           <div class="row">
-            <div><strong>${i.symbol ?? ""}</strong> – ${i.name ?? ""}</div>
-            <div class="muted">stav: ${i.status ?? ""}</div>
+            <strong>${i.symbol || ""}</strong> – ${i.name || ""}
+            <div class="muted">stav: ${i.status || ""}</div>
           </div>
         `;
       });
     }
 
+    /* === NAČTENÍ DAT === */
     async function load() {
       const el = document.getElementById("list");
-      el.textContent = "Načítám...";
+      el.textContent = "Načítám…";
 
       const { data, error } = await supabase
         .from("items")
@@ -66,7 +111,7 @@
       console.log("ERROR:", error);
 
       if (error) {
-        el.textContent = "CHYBA: " + error.message;
+        el.textContent = "CHYBA (Supabase): " + error.message;
         return;
       }
 
