@@ -141,7 +141,7 @@
         .from("items")
         .update({
           status: "K prodeji",
-          "reserved by": null,
+          reserved_by: null,
           reserved_at: null
         })
         .lt("reserved_at", cutoff)
@@ -262,7 +262,7 @@
         .from("items")
         .update({
           status: "Prodáno",
-          "sold by": currentTraderName
+          sold_by: currentTraderName
         })
         .eq("id", id);
 
