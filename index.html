@@ -167,7 +167,12 @@ body { font-family: Arial, sans-serif; padding: 28px; color: var(--text); backgr
 .acc-header[data-target="pro"] { background:#dcfce7; border-color:#22c55e; color:#166534; border-radius:8px; padding:10px; }
 .acc-header[data-target="zap"] { background:#fef9c3; border-color:#facc15; color:#92400e; border-radius:8px; padding:10px; }
 
-/* Responsivní */
+/* Modal */
+.modal.hidden { display: none; }
+.modal { position: fixed; inset: 0; z-index: 9999; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+.modal-card { position: relative; max-width: 520px; margin: 8vh auto; background: #fff; border-radius: 12px; border: 1px solid #ddd; padding: 20px 20px 16px; box-shadow: 0 12px 32px rgba(0,0,0,0.2); }
+
 @media (max-width:800px){
   .row { flex-direction: column; align-items:flex-start; gap:8px; }
   .row .actions { align-self:stretch; display:flex; gap:8px; justify-content:flex-end; width:100%; }
@@ -209,7 +214,7 @@ body { font-family: Arial, sans-serif; padding: 28px; color: var(--text); backgr
 <!-- MODAL: Hromadná rezervace -->
 <div id="bulkReserveModal" class="modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="brm-title">
   <div class="modal-backdrop" id="brm-backdrop"></div>
-  <div class="modal-card" role="document" style="position:relative; max-width:520px; margin:8vh auto; background:#fff; border-radius:12px; border:1px solid #ddd; padding:20px;">
+  <div class="modal-card" role="document">
     <h3 id="brm-title">Hromadná rezervace</h3>
     <span class="muted">Počet vybraných položek: <b id="brm-count">0</b></span>
     <label for="brm-customer">Jméno zákazníka</label>
@@ -333,11 +338,11 @@ document.addEventListener("DOMContentLoaded", () => {
     vykresli(data, moje);
   }
 
-  // Pomocné funkce pro výběr v "Dostupné akcie"
+  // --- upravená funkce: získat vybraná dostupná id (používá .bulk-available) ---
   function getSelectedAvailableIds() {
     const container = document.getElementById("available-list");
     if (!container) return [];
-    return Array.from(container.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
+    return Array.from(container.querySelectorAll(".bulk-available:checked")).map(c => c.dataset.id);
   }
 
   function updateBulkReserveState() {
@@ -407,7 +412,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Poznámka: Rezervované a Prodané jsou při načtení sbalené (hidden)
       html += `
         <div class="section">
           <h2>Moje rezervace (${moje.length})</h2>
@@ -459,7 +463,8 @@ document.addEventListener("DOMContentLoaded", () => {
       htmlAvail += `
         <div class="row available">
           <div>
-            <input type="checkbox" class="bulk" data-id="${r.id}">
+            <!-- upravená třída checkboxu: bulk-available -->
+            <input type="checkbox" class="bulk-available" data-id="${r.id}">
             <span class="badge">#${r.id}</span>
             <span class="muted prio">prioritní akcie</span>
           </div>
@@ -535,10 +540,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const bulkReserveBtn = document.getElementById("bulk-reserve");
     if (bulkReserveBtn) bulkReserveBtn.addEventListener("click", (e) => { e.preventDefault(); openBulkReserveModal(); });
 
+    // --- delegovaný listener pro checkboxy dostupných položek (bulk-available) ---
     const availableList = document.getElementById("available-list");
     if (availableList) {
-      availableList.querySelectorAll("input.bulk").forEach(cb => {
-        cb.addEventListener("change", updateBulkReserveState);
+      availableList.addEventListener("change", (ev) => {
+        const target = ev.target;
+        if (target && target.classList && target.classList.contains("bulk-available")) {
+          updateBulkReserveState();
+        }
       });
       updateBulkReserveState();
     }
