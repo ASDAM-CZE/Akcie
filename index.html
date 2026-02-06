@@ -243,7 +243,7 @@
         .update({
           status: "Rezervováno",
           price: novaCena,
-          "reserved by": currentTraderName,
+          reserved_by: currentTraderName,
           reserved_at: new Date().toISOString()
         })
         .eq("id", id)
