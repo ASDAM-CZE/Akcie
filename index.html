@@ -154,8 +154,10 @@ async function nacist() {
 
     const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === currentTraderName);
 
-   function vykresli(data, moje) {
+    vykresli(data, moje);
+}
 
+function vykresli(data, moje) {
     let html = "";
 
     if (moje.length > 0) {
@@ -171,15 +173,12 @@ async function nacist() {
             let tlacitka = "";
 
             if (r.paid === true) {
-                // Zaplaceno → žádná tlačítka
                 tlacitka = "";
 
             } else if (r.status === "Prodáno") {
-                // Prodáno → lze zaplatit
                 tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplatit</button>`;
 
             } else if (r.status === "Rezervováno") {
-                // Rezervováno → nelze zaplatit, jen prodat nebo zrušit
                 tlacitka = `
                     <button data-id="${r.id}" class="sell-btn">Prodat</button>
                     <button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
@@ -245,6 +244,7 @@ async function nacist() {
         btn.addEventListener("click", () => rezervovat(btn.dataset.id));
     });
 }
+
 async function rezervovat(id) {
     const inputCena = document.getElementById("cena-" + id);
     const inputZakaznik = document.getElementById("zakaznik-" + id);
