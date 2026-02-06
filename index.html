@@ -120,6 +120,16 @@ body { font-family: Arial, sans-serif; padding: 28px; color: var(--text); backgr
 .paid-btn { background: #facc15; color: #111; }
 .cancel-btn { background: #ff0033; color: #fff; }
 
+/* Zvýrazněné hlavní tlačítko - větší */
+#bulk-reserve {
+  font-size: 1.25em;
+  padding: 12px 22px;
+  min-width: 220px;
+  border-radius: 10px;
+  box-shadow: 0 6px 14px rgba(3, 102, 214, 0.12);
+}
+#bulk-reserve:disabled { opacity: 0.55; cursor: not-allowed; }
+
 /* Accordion */
 .accordion { margin-top: 10px; }
 .acc-header {
@@ -353,6 +363,29 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.textContent = count > 0 ? `Hromadně rezervovat (${count})` : "Hromadně rezervovat";
   }
 
+  // Vrací ID vybraných položek pro hromadné zrušení.
+  // Pokud je currentIsAdmin true, sbírá vybrané checkboxy z Rezervované, Prodáno i Zaplaceno.
+  // Jinak vrací pouze z Rezervované.
+  function getSelectedIdsForBulkCancel() {
+    if (currentIsAdmin) {
+      const ids = new Set();
+      ["#rez", "#pro", "#zap"].forEach(selector => {
+        const root = document.querySelector(selector);
+        if (!root) return;
+        root.querySelectorAll(".bulk:checked").forEach(cb => ids.add(cb.dataset.id));
+      });
+      return Array.from(ids);
+    } else {
+      return getSelectedIds("#rez");
+    }
+  }
+
+  function getSelectedIds(containerSelector) {
+    const root = containerSelector ? document.querySelector(containerSelector) : document;
+    if (!root) return [];
+    return Array.from(root.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
+  }
+
   function vykresli(data, moje) {
     let html = "";
 
@@ -369,21 +402,29 @@ document.addEventListener("DOMContentLoaded", () => {
           r.status === "Prodáno" ? "prodano" :
           r.status === "Rezervováno" ? "rezervovano" : "";
 
+        // checkbox: pokud je položka zaplacena a uživatel není admin, checkbox se nezobrazuje.
+        // Admin uvidí checkbox i pro zaplacené položky, aby mohl provádět hromadné zrušení.
+        const checkboxHtml = (r.paid === true && !currentIsAdmin)
+          ? ""
+          : `<input type="checkbox" class="bulk" data-id="${r.id}">`;
+
+        // tlačítka podle stavu a práv admina
         let tlacitka = "";
         if (r.paid === true) {
-          tlacitka = "";
+          // zaplaceno: admin může zrušit (vrátit do K prodeji), běžný uživatel nic
+          tlacitka = currentIsAdmin ? `<button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>` : "";
         } else if (r.status === "Prodáno") {
-          tlacitka = `<button data-id="${r.id}" class="paid-btn">Zaplatit</button>`;
+          // prodáno: běžný uživatel může označit jako zaplaceno, admin může i zrušit
+          tlacitka = currentIsAdmin
+            ? `<button data-id="${r.id}" class="paid-btn">Zaplatit</button><button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>`
+            : `<button data-id="${r.id}" class="paid-btn">Zaplatit</button>`;
         } else if (r.status === "Rezervováno") {
+          // rezervováno: oba mají standardní možnosti
           tlacitka = `
             <button data-id="${r.id}" class="sell-btn">Prodat</button>
             <button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>
           `;
         }
-
-        const checkboxHtml = r.paid === true
-          ? ""
-          : `<input type="checkbox" class="bulk" data-id="${r.id}">`;
 
         const badgeWithText = `<span><span class="badge">#${r.id}</span><span class="muted prio">prioritní akcie</span></span>`;
 
@@ -595,6 +636,7 @@ document.addEventListener("DOMContentLoaded", () => {
     nacist();
   }
 
+  // Upraveno: admin i běžný uživatel mohou zrušit rezervaci; admin může zrušit i prodané/zaplacené
   async function zrusitRezervaci(id) {
     await supabase
       .from("items")
@@ -607,12 +649,6 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .eq("id", id);
     nacist();
-  }
-
-  function getSelectedIds(containerSelector) {
-    const root = containerSelector ? document.querySelector(containerSelector) : document;
-    if (!root) return [];
-    return Array.from(root.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
   }
 
   async function bulkSell(e) {
@@ -643,11 +679,12 @@ document.addEventListener("DOMContentLoaded", () => {
     nacist();
   }
 
+  // Upravené bulkCancel: admin může zrušit i prodané/zaplacené položky
   async function bulkCancel(e) {
     if (e && e.preventDefault) e.preventDefault();
-    const ids = getSelectedIds("#rez");
+    const ids = getSelectedIdsForBulkCancel();
     if (ids.length === 0) {
-      alert("Nic není vybráno v sekci Rezervované.");
+      alert("Nic není vybráno pro zrušení.");
       return;
     }
     await supabase
