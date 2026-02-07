@@ -334,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     currentTraderId = data.id;
-    currentTraderName = name;
+    currentTraderName = password;
     currentIsAdmin = data.is_admin === true;
     userLabel.textContent = currentTraderName;
     showApp();
@@ -375,7 +375,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === currentTraderName);
+    const moje = currentIsAdmin 
+  ? data.filter(r => r.status !== "K prodeji") 
+  : data.filter(r => r.reserved_by === currentTraderName);
     vykresli(data, moje);
   }
 
