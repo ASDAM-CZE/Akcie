@@ -369,8 +369,8 @@ const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; consol
     }
 
     if (selectAllWrap) {
-      if (currentIsAdmin) selectAllWrap.classList.remove("hidden");
-      else selectAllWrap.classList.add("hidden");
+      if (currentIsAdmin) selectAllWrap.classList.remove(\"hidden\");
+      else selectAllWrap.classList.add(\"hidden\");
     }
 userLabel.textContent = currentTraderName;
     showApp();
@@ -879,20 +879,21 @@ userLabel.textContent = currentTraderName;
   logoutBtn.addEventListener("click", () => {
     showLogin();
     
-  // Admin řazení: změna => znovu vykreslit
+      if (selectAllCb) selectAllCb.checked = false;
+// Admin řazení: změna => znovu vykreslit
   if (adminSortSel) {
     adminSortSel.addEventListener("change", () => {
-      // rychlé přerenderování bez fetch
+      // přerender bez načítání ze serveru
       if (lastLoadedData && lastLoadedMoje) {
         vykresli(lastLoadedData, lastLoadedMoje);
       } 
-  // Admin: Označit vše (rezervované/prodané/zaplacené i volné)
+  // Admin: Označit vše
   if (selectAllCb) {
-    selectAllCb.addEventListener("change", () => {
+    selectAllCb.addEventListener(\"change\", () => {
       const checked = !!selectAllCb.checked;
-      document.querySelectorAll('input[type="checkbox"].bulk, input[type="checkbox"].bulk-available').forEach(cb => {
-        cb.checked = checked;
-      });
+      // pouze checkboxy položek, ne samotné \"Označit vše\"
+      document.querySelectorAll('#list input[type=\"checkbox\"].bulk, #list input[type=\"checkbox\"].bulk-available')
+        .forEach(cb => { cb.checked = checked; });
     });
   }
 else {
