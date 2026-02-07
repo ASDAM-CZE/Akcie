@@ -231,6 +231,13 @@ input[type="checkbox"] {
       <option value="date">Datum rezervace</option>
     </select>
   </span>
+  <span id="select-all-wrap" class="hidden" style="margin-left:12px;">
+    <label style="cursor:pointer;">
+      <input id="select-all" type="checkbox" style="vertical-align:middle; margin-right:6px;">
+      Označit vše
+    </label>
+  </span>
+
 </h2>
   <button id="logout-btn">Odhlásit</button>
   <div id="list" style="margin-top:12px;"></div>
@@ -275,6 +282,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const adminSortWrap = document.getElementById("admin-sort-wrap");
   const adminSortSel = document.getElementById("admin-sort");
+  const selectAllWrap = document.getElementById("select-all-wrap");
+  const selectAllCb = document.getElementById("select-all");
 // Modal prvky
   const brmEl = document.getElementById("bulkReserveModal");
   const brmCountEl = document.getElementById("brm-count");
@@ -289,7 +298,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTraderName = null;
   let currentIsAdmin = false;
 
-  const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; console.log(txt); };
+  
+  // cache posledně načtených dat pro rychlé přerenderování (např. při změně řazení)
+  let lastLoadedData = null;
+  let lastLoadedMoje = null;
+const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; console.log(txt); };
 
   const supabase = window.supabase.createClient(
     "https://pureguxhuoskbrtavwkp.supabase.co",
@@ -354,6 +367,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (currentIsAdmin) adminSortWrap.classList.remove("hidden");
       else adminSortWrap.classList.add("hidden");
     }
+
+    if (selectAllWrap) {
+      if (currentIsAdmin) selectAllWrap.classList.remove("hidden");
+      else selectAllWrap.classList.add("hidden");
+    }
 userLabel.textContent = currentTraderName;
     showApp();
     nacist();
@@ -401,6 +419,8 @@ userLabel.textContent = currentTraderName;
       if (A !== B) return A.localeCompare(B);
       return (a.id || 0) - (b.id || 0);
     });
+    lastLoadedData = data;
+    lastLoadedMoje = moje;
     vykresli(data, moje);
   }
 
@@ -861,8 +881,25 @@ userLabel.textContent = currentTraderName;
     
   // Admin řazení: změna => znovu vykreslit
   if (adminSortSel) {
-    adminSortSel.addEventListener("change", () => nacist());
+    adminSortSel.addEventListener("change", () => {
+      // rychlé přerenderování bez fetch
+      if (lastLoadedData && lastLoadedMoje) {
+        vykresli(lastLoadedData, lastLoadedMoje);
+      } 
+  // Admin: Označit vše (rezervované/prodané/zaplacené i volné)
+  if (selectAllCb) {
+    selectAllCb.addEventListener("change", () => {
+      const checked = !!selectAllCb.checked;
+      document.querySelectorAll('input[type="checkbox"].bulk, input[type="checkbox"].bulk-available').forEach(cb => {
+        cb.checked = checked;
+      });
+    });
   }
+else {
+        nacist();
+      }
+    });
+}
 listEl.textContent = "";
   });
 
