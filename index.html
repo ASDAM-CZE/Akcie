@@ -348,7 +348,13 @@ document.addEventListener("DOMContentLoaded", () => {
     currentTraderId = data.id;
     currentTraderName = password;
     currentIsAdmin = data.is_admin === true;
-    userLabel.textContent = currentTraderName;
+    
+    // Admin řazení: zobrazit volbu jen adminovi
+    if (adminSortWrap) {
+      if (currentIsAdmin) adminSortWrap.classList.remove("hidden");
+      else adminSortWrap.classList.add("hidden");
+    }
+userLabel.textContent = currentTraderName;
     showApp();
     nacist();
   }
