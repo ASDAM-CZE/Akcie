@@ -252,7 +252,6 @@ input[type="checkbox"] {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const debugEl = document.getElementById("debug");
   const listEl = document.getElementById("list");
   const loginSection = document.getElementById("login-section");
   const appSection = document.getElementById("app-section");
@@ -277,14 +276,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTraderName = null;
   let currentIsAdmin = false;
 
-  const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; console.log(txt); };
-
   const supabase = window.supabase.createClient(
     "https://pureguxhuoskbrtavwkp.supabase.co",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1cmVndXhodW9za2JydGF2d2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODQzNjMsImV4cCI6MjA4NTk2MDM2M30.tc7zqlnGdlwooGFDaMOjGxTsl9RDVbQakeL_qajUlWc"
   );
 
-  const formatCena = (c) => new Intl.NumberFormat("cs-CZ").format(c) + " Kč";
+  const formatCena = (c) =>
+    new Intl.NumberFormat("cs-CZ").format(c) + " Kč";
 
   function showLogin() {
     loginSection.classList.remove("hidden");
@@ -303,6 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function handleLogin() {
     const name = loginNameInput.value.trim();
     const password = loginPasswordInput.value.trim();
+
     loginMsg.textContent = "";
     loginMsg.classList.remove("error");
 
@@ -323,7 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (error) {
       loginMsg.textContent = "Chyba při přihlášení.";
       loginMsg.classList.add("error");
-      debug("Login error: " + error.message);
+      console.error("Login error:", error.message);
       return;
     }
 
@@ -336,24 +335,33 @@ document.addEventListener("DOMContentLoaded", () => {
     currentTraderId = data.id;
     currentTraderName = password;
     currentIsAdmin = data.is_admin === true;
+
     userLabel.textContent = currentTraderName;
+
     showApp();
     nacist();
   }
 
   async function zrusitStareRezervace() {
-    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    await supabase
+    const cutoff = new Date(
+      Date.now() - 7 * 24 * 60 * 60 * 1000
+    ).toISOString();
+
+    const { error } = await supabase
       .from("items")
       .update({
         status: "K prodeji",
         reserved_by: null,
         reserved_for: null,
         reserved_at: null,
-        paid: false
+        paid: false,
       })
       .lt("reserved_at", cutoff)
       .eq("status", "Rezervováno");
+
+    if (error) {
+      console.error("Chyba při rušení starých rezervací:", error.message);
+    }
   }
 
   async function nacist() {
@@ -361,11 +369,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const { data, error } = await supabase
       .from("items")
-      .select("id,priority_number,status,price,reserved_by,reserved_for,reserved_at,paid")
+      .select(
+        "id,priority_number,status,price,reserved_by,reserved_for,reserved_at,paid"
+      )
       .order("priority_number", { ascending: true });
 
     if (error) {
-      debug("Chyba při načítání items: " + error.message);
+      console.error("Chyba při načítání items:", error.message);
       listEl.textContent = "Chyba při načítání dat.";
       return;
     }
@@ -375,29 +385,21 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    let moje = currentIsAdmin 
-  ? data.filter(r => r.status !== "K prodeji")
-  : data.filter(r => r.reserved_by === currentTraderName);
+    const moje = currentIsAdmin
+      ? data
+      : data.filter((r) => r.reserved_by === currentTraderName);
 
-// ADMIN: seřadit podle obchodníka
-if (currentIsAdmin) {
-  moje.sort((a, b) => {
-    const A = (a.reserved_by || "").toLowerCase();
-    const B = (b.reserved_by || "").toLowerCase();
-    return A.localeCompare(B);
-  });
-}
-
-
-    vykresli(moje);
-
+    vykresli(data, moje);
   }
 
-  // --- upravená funkce: získat vybraná dostupná id (používá .bulk-available) ---
+  // --- pomocné funkce pro výběry ---
+
   function getSelectedAvailableIds() {
     const container = document.getElementById("available-list");
     if (!container) return [];
-    return Array.from(container.querySelectorAll(".bulk-available:checked")).map(c => c.dataset.id);
+    return Array.from(
+      container.querySelectorAll(".bulk-available:checked")
+    ).map((c) => c.dataset.id);
   }
 
   function updateBulkReserveState() {
@@ -405,19 +407,33 @@ if (currentIsAdmin) {
     if (!btn) return;
     const count = getSelectedAvailableIds().length;
     btn.disabled = count === 0;
-    btn.textContent = count > 0 ? `Hromadně rezervovat (${count})` : "Hromadně rezervovat";
+    btn.textContent =
+      count > 0
+        ? `Hromadně rezervovat (${count})`
+        : "Hromadně rezervovat";
+  }
+
+  function getSelectedIds(containerSelector) {
+    const root = containerSelector
+      ? document.querySelector(containerSelector)
+      : document;
+    if (!root) return [];
+    return Array.from(root.querySelectorAll(".bulk:checked")).map(
+      (c) => c.dataset.id
+    );
   }
 
   // Vrací ID vybraných položek pro hromadné zrušení.
-  // Pokud je currentIsAdmin true, sbírá vybrané checkboxy z Rezervované, Prodáno i Zaplaceno.
-  // Jinak vrací pouze z Rezervované.
+  // Admin: z Rezervované, Prodáno, Zaplaceno; běžný uživatel: jen Rezervované.
   function getSelectedIdsForBulkCancel() {
     if (currentIsAdmin) {
       const ids = new Set();
-      ["#rez", "#pro", "#zap"].forEach(selector => {
+      ["#rez", "#pro", "#zap"].forEach((selector) => {
         const root = document.querySelector(selector);
         if (!root) return;
-        root.querySelectorAll(".bulk:checked").forEach(cb => ids.add(cb.dataset.id));
+        root.querySelectorAll(".bulk:checked").forEach((cb) =>
+          ids.add(cb.dataset.id)
+        );
       });
       return Array.from(ids);
     } else {
@@ -425,39 +441,42 @@ if (currentIsAdmin) {
     }
   }
 
-  function getSelectedIds(containerSelector) {
-    const root = containerSelector ? document.querySelector(containerSelector) : document;
-    if (!root) return [];
-    return Array.from(root.querySelectorAll(".bulk:checked")).map(c => c.dataset.id);
-  }
-
   function vykresli(data, moje) {
     let html = "";
 
     // Moje rezervace / Prodáno / Zaplaceno
-    if (moje.length > 0) {
+    if (moje && moje.length > 0) {
       let htmlRez = "";
       let htmlPro = "";
       let htmlZap = "";
 
-      moje.forEach(r => {
-        const subtleClass = (r.status === "Rezervováno" || r.status === "Prodáno") ? "subtle" : "";
+      moje.forEach((r) => {
+        const subtleClass =
+          r.status === "Rezervováno" || r.status === "Prodáno"
+            ? "subtle"
+            : "";
         const trida =
-          r.paid === true ? "zaplaceno" :
-          r.status === "Prodáno" ? "prodano" :
-          r.status === "Rezervováno" ? "rezervovano" : "";
+          r.paid === true
+            ? "zaplaceno"
+            : r.status === "Prodáno"
+            ? "prodano"
+            : r.status === "Rezervováno"
+            ? "rezervovano"
+            : "";
 
         // checkbox: pokud je položka zaplacena a uživatel není admin, checkbox se nezobrazuje.
-        // Admin uvidí checkbox i pro zaplacené položky, aby mohl provádět hromadné zrušení.
-        const checkboxHtml = (r.paid === true && !currentIsAdmin)
-          ? ""
-          : `<input type="checkbox" class="bulk" data-id="${r.id}">`;
+        const checkboxHtml =
+          r.paid === true && !currentIsAdmin
+            ? ""
+            : `<input type="checkbox" class="bulk" data-id="${r.id}">`;
 
-        // tlačítka podle stavu a práv admina
         let tlacitka = "";
+
         if (r.paid === true) {
-          // zaplaceno: admin může zrušit (vrátit do K prodeji), běžný uživatel nic
-          tlacitka = currentIsAdmin ? `<button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>` : "";
+          // zaplaceno: admin může zrušit, běžný uživatel nic
+          tlacitka = currentIsAdmin
+            ? `<button data-id="${r.id}" class="cancel-btn">Zrušit rezervaci</button>`
+            : "";
         } else if (r.status === "Prodáno") {
           // prodáno: běžný uživatel může označit jako zaplaceno, admin může i zrušit
           tlacitka = currentIsAdmin
@@ -472,6 +491,7 @@ if (currentIsAdmin) {
         }
 
         const badgeWithText = `<span><span class="badge">#${r.id}</span><span class="muted prio">prioritní akcie</span></span>`;
+
         const blok = `
           <div class="row ${subtleClass} ${trida}">
             <div>
@@ -479,9 +499,17 @@ if (currentIsAdmin) {
               ${badgeWithText}
             </div>
             <div>
-              <span class="muted">Cena: ${formatCena(r.price || 0)}</span><br>
-              <span class="muted">Zákazník: ${r.reserved_for || "-"}</span><br>
-              <span class="muted">Rezervováno: ${r.reserved_at ? new Date(r.reserved_at).toLocaleString("cs-CZ") : "-"}</span><br>
+              <span class="muted">Cena: ${formatCena(
+                r.price || 0
+              )}</span><br>
+              <span class="muted">Zákazník: ${
+                r.reserved_for || "-"
+              }</span><br>
+              <span class="muted">Rezervováno: ${
+                r.reserved_at
+                  ? new Date(r.reserved_at).toLocaleString("cs-CZ")
+                  : "-"
+              }</span><br>
               <span class="muted">Stav: ${r.status}</span>
             </div>
             <div class="actions">${tlacitka}</div>
@@ -510,26 +538,34 @@ if (currentIsAdmin) {
               <button class="group-toggle" aria-expanded="false">▸</button>
               <span class="title">Rezervované</span>
             </div>
-            <div id="rez" class="acc-body hidden">${htmlRez || "<div class='muted'>Žádné rezervované položky.</div>"}</div>
+            <div id="rez" class="acc-body hidden">${
+              htmlRez ||
+              "<div class='muted'>Žádné rezervované položky.</div>"
+            }</div>
 
             <div class="acc-header" data-target="pro">
               <button class="group-toggle" aria-expanded="false">▸</button>
               <span class="title">Prodáno</span>
             </div>
-            <div id="pro" class="acc-body hidden">${htmlPro || "<div class='muted'>Žádné prodané položky.</div>"}</div>
+            <div id="pro" class="acc-body hidden">${
+              htmlPro || "<div class='muted'>Žádné prodané položky.</div>"
+            }</div>
 
             <div class="acc-header" data-target="zap">
               <button class="group-toggle" aria-expanded="false">▸</button>
               <span class="title">Zaplaceno</span>
             </div>
-            <div id="zap" class="acc-body hidden">${htmlZap || "<div class='muted'>Žádné zaplacené položky.</div>"}</div>
+            <div id="zap" class="acc-body hidden">${
+              htmlZap || "<div class='muted'>Žádné zaplacené položky.</div>"
+            }</div>
           </div>
         </div>
       `;
     }
 
     // Dostupné akcie + hromadná rezervace
-    const dostupne = data.filter(r => r.status === "K prodeji");
+    const dostupne = data.filter((r) => r.status === "K prodeji");
+
     html += `
       <div class="section">
         <h2>Dostupné akcie (${dostupne.length})</h2>
@@ -542,11 +578,11 @@ if (currentIsAdmin) {
     `;
 
     let htmlAvail = "";
-    dostupne.forEach(r => {
+
+    dostupne.forEach((r) => {
       htmlAvail += `
         <div class="row available">
           <div>
-            <!-- upravená třída checkboxu: bulk-available -->
             <input type="checkbox" class="bulk-available" data-id="${r.id}">
             <span class="badge">#${r.id}</span>
             <span class="muted prio">prioritní akcie</span>
@@ -556,58 +592,73 @@ if (currentIsAdmin) {
           </div>
           <div><b>${formatCena(r.price || 0)}</b></div>
           <div class="actions">
-            <input type="number" min="1000000" step="1000" value="${r.price || 1000000}" id="cena-${r.id}" style="width:140px" />
-            <input type="text" placeholder="Jméno zákazníka" id="zakaznik-${r.id}" style="width:160px" />
+            <input type="number" min="1000000" step="1000" value="${
+              r.price || 1000000
+            }" id="cena-${r.id}" style="width:140px" />
+            <input type="text" placeholder="Jméno zákazníka" id="zakaznik-${
+              r.id
+            }" style="width:160px" />
             <button class="primary" data-id="${r.id}">Rezervovat</button>
           </div>
         </div>
       `;
     });
 
-    html += `<div id="available-list">${htmlAvail || "<div class='muted'>Žádné dostupné položky.</div>"}</div></div>`;
+    html += `<div id="available-list">${
+      htmlAvail || "<div class='muted'>Žádné dostupné položky.</div>"
+    }</div></div>`;
+
     listEl.innerHTML = html;
 
     // Jednotlivé akce
-    listEl.querySelectorAll(".sell-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => { e.preventDefault(); oznacitProdej(btn.dataset.id); });
+    listEl.querySelectorAll(".sell-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        oznacitProdej(btn.dataset.id);
+      });
     });
 
-    listEl.querySelectorAll(".paid-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => { e.preventDefault(); oznacitZaplaceno(btn.dataset.id); });
+    listEl.querySelectorAll(".paid-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        oznacitZaplaceno(btn.dataset.id);
+      });
     });
 
-    listEl.querySelectorAll(".cancel-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => { e.preventDefault(); zrusitRezervaci(btn.dataset.id); });
+    listEl.querySelectorAll(".cancel-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        zrusitRezervaci(btn.dataset.id);
+      });
     });
 
-    listEl.querySelectorAll("button.primary").forEach(btn => {
+    listEl.querySelectorAll("button.primary").forEach((btn) => {
       if (btn.id !== "bulk-reserve") {
-        btn.addEventListener("click", (e) => { e.preventDefault(); rezervovat(btn.dataset.id); });
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          rezervovat(btn.dataset.id);
+        });
       }
     });
 
-    // Accordion: přidáme ovládání šipky a aria-expanded
-    listEl.querySelectorAll(".acc-header").forEach(h => {
+    // Accordion
+    listEl.querySelectorAll(".acc-header").forEach((h) => {
       const toggleBtn = h.querySelector(".group-toggle");
-      h.addEventListener("click", (ev) => {
+
+      const toggleBody = (ev) => {
+        if (ev) ev.stopPropagation();
         const body = document.getElementById(h.dataset.target);
         if (!body) return;
         const isHidden = body.classList.toggle("hidden");
         if (toggleBtn) {
           toggleBtn.setAttribute("aria-expanded", (!isHidden).toString());
-          toggleBtn.textContent = (!isHidden) ? "▾" : "▸";
+          toggleBtn.textContent = !isHidden ? "▾" : "▸";
         }
-      });
+      };
 
+      h.addEventListener("click", toggleBody);
       if (toggleBtn) {
-        toggleBtn.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          const body = document.getElementById(h.dataset.target);
-          if (!body) return;
-          const isHidden = body.classList.toggle("hidden");
-          toggleBtn.setAttribute("aria-expanded", (!isHidden).toString());
-          toggleBtn.textContent = (!isHidden) ? "▾" : "▸";
-        });
+        toggleBtn.addEventListener("click", toggleBody);
       }
     });
 
@@ -616,20 +667,46 @@ if (currentIsAdmin) {
     const bulkPaidBtn = document.getElementById("bulk-paid");
     const bulkCancelBtn = document.getElementById("bulk-cancel");
 
-    if (bulkSellBtn) bulkSellBtn.addEventListener("click", bulkSell);
-    if (bulkPaidBtn) bulkPaidBtn.addEventListener("click", bulkPaid);
-    if (bulkCancelBtn) bulkCancelBtn.addEventListener("click", bulkCancel);
+    if (bulkSellBtn) {
+      bulkSellBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        bulkSell();
+      });
+    }
+
+    if (bulkPaidBtn) {
+      bulkPaidBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        bulkPaid();
+      });
+    }
+
+    if (bulkCancelBtn) {
+      bulkCancelBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        bulkCancel();
+      });
+    }
 
     // Hromadná rezervace dostupných
     const bulkReserveBtn = document.getElementById("bulk-reserve");
-    if (bulkReserveBtn) bulkReserveBtn.addEventListener("click", (e) => { e.preventDefault(); openBulkReserveModal(); });
+    if (bulkReserveBtn) {
+      bulkReserveBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openBulkReserveModal();
+      });
+    }
 
-    // --- delegovaný listener pro checkboxy dostupných položek (bulk-available) ---
+    // Checkboxy dostupných položek
     const availableList = document.getElementById("available-list");
     if (availableList) {
       availableList.addEventListener("change", (ev) => {
         const target = ev.target;
-        if (target && target.classList && target.classList.contains("bulk-available")) {
+        if (
+          target &&
+          target.classList &&
+          target.classList.contains("bulk-available")
+        ) {
           updateBulkReserveState();
         }
       });
@@ -640,6 +717,7 @@ if (currentIsAdmin) {
   async function rezervovat(id) {
     const inputCena = document.getElementById("cena-" + id);
     const inputZakaznik = document.getElementById("zakaznik-" + id);
+
     const novaCena = parseInt(inputCena.value, 10);
     const zakaznik = (inputZakaznik.value || "").trim();
 
@@ -653,106 +731,134 @@ if (currentIsAdmin) {
       return;
     }
 
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({
         status: "Rezervováno",
         price: novaCena,
         reserved_by: currentTraderName,
         reserved_for: zakaznik,
-        reserved_at: new Date().toISOString()
+        reserved_at: new Date().toISOString(),
       })
       .eq("id", id)
       .eq("status", "K prodeji");
+
+    if (error) {
+      console.error("Chyba při rezervaci:", error.message);
+    }
 
     nacist();
   }
 
   async function oznacitProdej(id) {
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({ status: "Prodáno" })
       .eq("id", id);
+
+    if (error) {
+      console.error("Chyba při označení prodeje:", error.message);
+    }
+
     nacist();
   }
 
   async function oznacitZaplaceno(id) {
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({
         paid: true,
-        status: "Zaplaceno"
+        status: "Zaplaceno",
       })
       .eq("id", id);
+
+    if (error) {
+      console.error("Chyba při označení zaplaceno:", error.message);
+    }
+
     nacist();
   }
 
-  // Upraveno: admin i běžný uživatel mohou zrušit rezervaci; admin může zrušit i prodané/zaplacené
+  // Admin i běžný uživatel mohou zrušit rezervaci; admin i prodané/zaplacené
   async function zrusitRezervaci(id) {
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({
         status: "K prodeji",
         reserved_by: null,
         reserved_for: null,
         reserved_at: null,
-        paid: false
+        paid: false,
       })
       .eq("id", id);
+
+    if (error) {
+      console.error("Chyba při rušení rezervace:", error.message);
+    }
+
     nacist();
   }
 
-  async function bulkSell(e) {
-    if (e && e.preventDefault) e.preventDefault();
+  async function bulkSell() {
     const ids = getSelectedIds("#rez");
     if (ids.length === 0) {
       alert("Nic není vybráno v sekci Rezervované.");
       return;
     }
 
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({ status: "Prodáno" })
       .in("id", ids);
 
+    if (error) {
+      console.error("Chyba při hromadném prodeji:", error.message);
+    }
+
     nacist();
   }
 
-  async function bulkPaid(e) {
-    if (e && e.preventDefault) e.preventDefault();
+  async function bulkPaid() {
     const ids = getSelectedIds("#pro");
     if (ids.length === 0) {
       alert("Nic není vybráno v sekci Prodáno.");
       return;
     }
 
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({ status: "Zaplaceno", paid: true })
       .in("id", ids);
 
+    if (error) {
+      console.error("Chyba při hromadném označení zaplaceno:", error.message);
+    }
+
     nacist();
   }
 
-  // Upravené bulkCancel: admin může zrušit i prodané/zaplacené položky
-  async function bulkCancel(e) {
-    if (e && e.preventDefault) e.preventDefault();
+  // Admin může zrušit i prodané/zaplacené položky
+  async function bulkCancel() {
     const ids = getSelectedIdsForBulkCancel();
     if (ids.length === 0) {
       alert("Nic není vybráno pro zrušení.");
       return;
     }
 
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({
         status: "K prodeji",
         reserved_by: null,
         reserved_for: null,
         reserved_at: null,
-        paid: false
+        paid: false,
       })
       .in("id", ids);
+
+    if (error) {
+      console.error("Chyba při hromadném rušení:", error.message);
+    }
 
     nacist();
   }
@@ -800,32 +906,63 @@ if (currentIsAdmin) {
     brmMsgEl.textContent = "";
     brmEl.classList.add("processing");
 
-    await supabase
+    const { error } = await supabase
       .from("items")
       .update({
         status: "Rezervováno",
         price: cena,
         reserved_by: currentTraderName,
         reserved_for: zakaznik,
-        reserved_at: new Date().toISOString()
+        reserved_at: new Date().toISOString(),
       })
       .in("id", ids)
       .eq("status", "K prodeji");
 
     brmEl.classList.remove("processing");
+
+    if (error) {
+      console.error("Chyba při hromadné rezervaci:", error.message);
+      brmMsgEl.textContent = "Chyba při ukládání rezervací.";
+      return;
+    }
+
     closeBulkReserveModal();
     nacist();
   }
 
   // Modal eventy
-  brmCancelBtn.addEventListener("click", (e) => { e.preventDefault(); closeBulkReserveModal(); });
-  brmBackdrop.addEventListener("click", (e) => { e.preventDefault(); closeBulkReserveModal(); });
-  brmSubmitBtn.addEventListener("click", (e) => { e.preventDefault(); submitBulkReserve(); });
+  if (brmCancelBtn) {
+    brmCancelBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeBulkReserveModal();
+    });
+  }
 
-  loginBtn.addEventListener("click", (e) => { e.preventDefault(); handleLogin(); });
+  if (brmBackdrop) {
+    brmBackdrop.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeBulkReserveModal();
+    });
+  }
+
+  if (brmSubmitBtn) {
+    brmSubmitBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      submitBulkReserve();
+    });
+  }
+
+  // Login / logout
+  loginBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    handleLogin();
+  });
 
   loginPasswordInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); handleLogin(); }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleLogin();
+    }
   });
 
   logoutBtn.addEventListener("click", () => {
