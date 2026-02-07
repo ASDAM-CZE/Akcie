@@ -375,10 +375,19 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const moje = currentIsAdmin 
-  ? data.filter(r => r.status !== "K prodeji") 
+    let moje = currentIsAdmin 
+  ? data.filter(r => r.status !== "K prodeji")
   : data.filter(r => r.reserved_by === currentTraderName);
-    vykresli(data, moje);
+
+// ADMIN: seřadit podle obchodníka
+if (currentIsAdmin) {
+  moje.sort((a, b) => {
+    const A = (a.reserved_by || "").toLowerCase();
+    const B = (b.reserved_by || "").toLowerCase();
+    return A.localeCompare(B);
+  });
+}
+
   }
 
   // --- upravená funkce: získat vybraná dostupná id (používá .bulk-available) ---
