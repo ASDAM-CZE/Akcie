@@ -369,8 +369,8 @@ const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; consol
     }
 
     if (selectAllWrap) {
-      if (currentIsAdmin) selectAllWrap.classList.remove(\"hidden\");
-      else selectAllWrap.classList.add(\"hidden\");
+      if (currentIsAdmin) selectAllWrap.classList.remove("hidden");
+      else selectAllWrap.classList.add("hidden");
     }
 userLabel.textContent = currentTraderName;
     showApp();
@@ -864,7 +864,6 @@ userLabel.textContent = currentTraderName;
     closeBulkReserveModal();
     nacist();
   }
-
   // Modal eventy
   brmCancelBtn.addEventListener("click", (e) => { e.preventDefault(); closeBulkReserveModal(); });
   brmBackdrop.addEventListener("click", (e) => { e.preventDefault(); closeBulkReserveModal(); });
@@ -876,32 +875,34 @@ userLabel.textContent = currentTraderName;
     if (e.key === "Enter") { e.preventDefault(); handleLogin(); }
   });
 
-  logoutBtn.addEventListener("click", () => {
-    showLogin();
-    
-      if (selectAllCb) selectAllCb.checked = false;
-// Admin řazení: změna => znovu vykreslit
+  // Admin řazení: změna => znovu vykreslit
   if (adminSortSel) {
     adminSortSel.addEventListener("change", () => {
       // přerender bez načítání ze serveru
       if (lastLoadedData && lastLoadedMoje) {
         vykresli(lastLoadedData, lastLoadedMoje);
-      } 
-  // Admin: Označit vše
-  if (selectAllCb) {
-    selectAllCb.addEventListener(\"change\", () => {
-      const checked = !!selectAllCb.checked;
-      // pouze checkboxy položek, ne samotné \"Označit vše\"
-      document.querySelectorAll('#list input[type=\"checkbox\"].bulk, #list input[type=\"checkbox\"].bulk-available')
-        .forEach(cb => { cb.checked = checked; });
-    });
-  }
-else {
+      } else {
         nacist();
       }
     });
-}
-listEl.textContent = "";
+  }
+
+  // Admin: Označit vše (zaškrtne i položky v seznamu)
+  if (selectAllCb) {
+    selectAllCb.addEventListener("change", () => {
+      const checked = !!selectAllCb.checked;
+      // pouze checkboxy položek, ne samotné "Označit vše"
+      document.querySelectorAll('#list input[type="checkbox"].bulk, #list input[type="checkbox"].bulk-available')
+        .forEach(cb => { cb.checked = checked; });
+      // aktualizace stavu hromadné rezervace (u dostupných)
+      updateBulkReserveState();
+    });
+  }
+
+  logoutBtn.addEventListener("click", () => {
+    showLogin();
+    if (selectAllCb) selectAllCb.checked = false;
+    listEl.textContent = "";
   });
 
   showLogin();
