@@ -432,6 +432,19 @@ document.addEventListener("DOMContentLoaded", () => {
       let htmlRez = "";
       let htmlPro = "";
       let htmlZap = "";
+    // ADMIN: řadit rezervované / prodané / zaplacené podle passwordu, který rezervoval
+    if (currentIsAdmin) {
+      const sortByPassword = (a, b) => {
+        const A = (a.reserved_by || "").toLowerCase();
+        const B = (b.reserved_by || "").toLowerCase();
+        if (A !== B) return A.localeCompare(B);
+        return (a.id || 0) - (b.id || 0);
+      };
+      rezervovane.sort(sortByPassword);
+      prodane.sort(sortByPassword);
+      zaplacene.sort(sortByPassword);
+    }
+
 
       moje.forEach(r => {
         const subtleClass = (r.status === "Rezervováno" || r.status === "Prodáno") ? "subtle" : "";
