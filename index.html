@@ -221,7 +221,17 @@ input[type="checkbox"] {
 
 <!-- APP -->
 <div id="app-section" class="hidden">
-  <h2>Vítejte, <span id="user-label"></span></h2>
+  <h2>Vítejte, <span id="user-label"></span>
+  <label style="margin-left:12px;">
+    Řadit dle:
+    <select id="admin-sort">
+      <option value="number">Čísla akcie</option>
+      <option value="reserved_by">Rezervoval (password)</option>
+      <option value="client">Klient</option>
+      <option value="date">Datum rezervace</option>
+    </select>
+  </label>
+</h2>
   <button id="logout-btn">Odhlásit</button>
   <div id="list" style="margin-top:12px;"></div>
 </div>
@@ -440,10 +450,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (A !== B) return A.localeCompare(B);
         return (a.id || 0) - (b.id || 0);
       };
-      rezervovane.sort(sortByPassword);
-      prodane.sort(sortByPassword);
-      zaplacene.sort(sortByPassword);
+      
+    // ADMIN: volitelné řazení
+    if (currentIsAdmin) {
+      const mode = document.getElementById("admin-sort")?.value || "number";
+      const cmp = {
+        number: (a, b) => (a.id || 0) - (b.id || 0),
+        reserved_by: (a, b) => (a.reserved_by || "").localeCompare(b.reserved_by || ""),
+        client: (a, b) => (a.reserved_for || "").localeCompare(b.reserved_for || ""),
+        date: (a, b) => new Date(a.reserved_at || 0) - new Date(b.reserved_at || 0),
+      }[mode];
+
+      if (cmp) {
+        rezervovane.sort(cmp);
+        prodane.sort(cmp);
+        zaplacene.sort(cmp);
+      }
     }
+}
 
 
       moje.forEach(r => {
