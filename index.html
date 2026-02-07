@@ -486,14 +486,16 @@ document.addEventListener("DOMContentLoaded", () => {
           htmlZap += blok;
         } else if (r.status === "Prodáno") {
           htmlPro += blok;
-        } else {
+        } else if (r.status === "Rezervováno") {
           htmlRez += blok;
+        } else {
+          // volné (K prodeji) do sekce rezervovaných/prodaných/zaplacených nepatří
         }
       });
 
       html += `
         <div class="section">
-          <h2>Moje rezervace (${moje.length})</h2>
+          <h2>Moje rezervace (${(moje.filter(x => x.status === "Rezervováno").length)})</h2>
           <div class="bulk-actions">
             <button id="bulk-sell" class="sell-btn">Hromadně prodat</button>
             <button id="bulk-paid" class="paid-btn">Hromadně zaplatit</button>
