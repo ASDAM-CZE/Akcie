@@ -226,8 +226,6 @@ input[type="checkbox"] {
   <div id="list" style="margin-top:12px;"></div>
 </div>
 
-<div id="debug" style="margin-top:20px; color:#888;"></div>
-
 <!-- MODAL: Hromadná rezervace -->
 <div id="bulkReserveModal" class="modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="brm-title">
   <div class="modal-backdrop" id="brm-backdrop"></div>
@@ -359,9 +357,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function nacist() {
-    debug("Načítám data…");
-    listEl.textContent = "Načítám…";
-
     await zrusitStareRezervace();
 
     const { data, error } = await supabase
