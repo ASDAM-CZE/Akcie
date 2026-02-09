@@ -238,8 +238,34 @@ input[type="checkbox"] {
     </label>
   </span>
 
+
 </h2>
+  <div id="super-panel" class="section hidden" style="margin-top:12px;">
+    <div style="font-weight:800; margin-bottom:10px;">Superobchodník – přepnutí uživatele</div>
+    <div class="muted" style="margin-bottom:10px;">Vyberte obchodníka. Aplikace se bude chovat, jako kdyby byl přihlášený on (filtr „Moje rezervace“ i reserved_by).</div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">
+      <div style="min-width:280px; flex:1;">
+        <label for="super-trader-select">Obchodník</label><br>
+        <select id="super-trader-select" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></select>
+      </div>
+
+      <div style="min-width:280px; flex:1;">
+        <label for="super-trader-name">Jméno (ukládá se do DB)</label><br>
+        <input id="super-trader-name" type="text" placeholder="Např. Novák" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;">
+        <div class="muted" style="margin-top:6px;">Ukládá se ke zvolenému heslu/kódu do tabulky <b>traders</b> (sloupec <b>display_name</b>).</div>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button id="super-apply" class="primary" style="padding:10px 14px;">Použít</button>
+        <button id="super-save-name" class="primary" style="padding:10px 14px; background:#111;">Uložit jméno</button>
+      </div>
+    </div>
+
+    <div id="super-msg" class="error" style="margin-top:10px; min-height:1.2em;"></div>
+  </div>
   <button id="logout-btn">Odhlásit</button>
+
   <div id="list" style="margin-top:12px;"></div>
 </div>
 
@@ -280,7 +306,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const userLabel = document.getElementById("user-label");
   const logoutBtn = document.getElementById("logout-btn");
 
-    const adminSortWrap = document.getElementById("admin-sort-wrap");
+  // Super panel
+  const superPanel = document.getElementById("super-panel");
+  const superSel = document.getElementById("super-trader-select");
+  const superNameInput = document.getElementById("super-trader-name");
+  const superApplyBtn = document.getElementById("super-apply");
+  const superSaveNameBtn = document.getElementById("super-save-name");
+  const superMsg = document.getElementById("super-msg");
+const adminSortWrap = document.getElementById("admin-sort-wrap");
   const adminSortSel = document.getElementById("admin-sort");
   const selectAllWrap = document.getElementById("select-all-wrap");
   const selectAllCb = document.getElementById("select-all");
@@ -297,9 +330,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentTraderId = null;
   let currentTraderName = null;
   let currentIsAdmin = false;
+  let currentIsSuper = false;
+  let effectiveTraderCode = null; // co se zapisuje do reserved_by
+  let effectiveTraderLabel = null; // co se ukazuje v hlavičce
+  let superTraderList = [];
 
-  
-  // cache posledně načtených dat pro rychlé přerenderování (např. při změně řazení)
+// cache posledně načtených dat pro rychlé přerenderování (např. při změně řazení)
   let lastLoadedData = null;
   let lastLoadedMoje = null;
 const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; console.log(txt); };
@@ -311,13 +347,32 @@ const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; consol
 
   const formatCena = (c) => new Intl.NumberFormat("cs-CZ").format(c) + " Kč";
 
+  // Superobchodník (speciální heslo)
+  const SUPER_PASSWORD = "c4bbf22b";
+
+
+function ensureActingTrader() {
+  if (currentIsSuper && !effectiveTraderCode) {
+    alert("Vyberte prosím obchodníka v panelu Superobchodníka.");
+    return false;
+  }
+  return true;
+}
+
+
+
   function showLogin() {
     loginSection.classList.remove("hidden");
     appSection.classList.add("hidden");
     currentTraderId = null;
     currentTraderName = null;
     currentIsAdmin = false;
-    loginPasswordInput.value = "";
+    currentIsSuper = false;
+    effectiveTraderCode = null;
+    effectiveTraderLabel = null;
+    superTraderList = [];
+    if (superPanel) superPanel.classList.add("hidden");
+loginPasswordInput.value = "";
   }
 
   function showApp() {
@@ -337,7 +392,28 @@ const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; consol
       return;
     }
 
-    const { data, error } = await supabase
+    
+// Superobchodník: nepřihlašuje se přes DB, jen podle hesla
+if (password === SUPER_PASSWORD) {
+  currentTraderId = "super";
+  currentTraderName = "SUPER";
+  currentIsAdmin = false;
+  currentIsSuper = true;
+  effectiveTraderCode = null; // nastaví se po výběru obchodníka
+  effectiveTraderLabel = "SUPER";
+
+  if (adminSortWrap) adminSortWrap.classList.add("hidden");
+  if (selectAllWrap) selectAllWrap.classList.add("hidden");
+
+  userLabel.textContent = "SUPER";
+  showApp();
+
+  await loadSuperTraderList();
+  if (superPanel) superPanel.classList.remove("hidden");
+  return;
+}
+
+const { data, error } = await supabase
       .from("traders")
       .select("id, is_admin")
       .eq("password", password)
@@ -361,8 +437,10 @@ const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; consol
     currentTraderId = data.id;
     currentTraderName = password;
     currentIsAdmin = data.is_admin === true;
-    
-    // Admin řazení: zobrazit volbu jen adminovi
+    currentIsSuper = false;
+    effectiveTraderCode = password;
+    effectiveTraderLabel = password;
+// Admin řazení: zobrazit volbu jen adminovi
     if (adminSortWrap) {
       if (currentIsAdmin) adminSortWrap.classList.remove("hidden");
       else adminSortWrap.classList.add("hidden");
@@ -372,12 +450,143 @@ const debug = (txt) => { if (!debugEl) return; debugEl.textContent = txt; consol
       if (currentIsAdmin) selectAllWrap.classList.remove("hidden");
       else selectAllWrap.classList.add("hidden");
     }
-userLabel.textContent = currentTraderName;
+userLabel.textContent = effectiveTraderLabel || currentTraderName || "";
     showApp();
     nacist();
   }
 
-  async function zrusitStareRezervace() {
+  
+async function loadSuperTraderList() {
+  if (!superSel) return;
+  superMsg.textContent = "";
+
+  // načti aktivní tradery (bez admina a bez super hesla)
+  const { data, error } = await supabase
+    .from("traders")
+    .select("id, password, is_admin, display_name, active")
+    .eq("active", true)
+    .eq("is_admin", false)
+    .neq("password", SUPER_PASSWORD)
+    .order("password", { ascending: true });
+
+  if (error) {
+    superMsg.textContent = "Chyba při načítání obchodníků.";
+    debug("Super list error: " + error.message);
+    return;
+  }
+
+  superTraderList = (data || []).filter(r => r && r.password);
+
+  // naplň dropdown
+  superSel.innerHTML = "";
+  if (superTraderList.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Žádní obchodníci";
+    superSel.appendChild(opt);
+    superSel.disabled = true;
+    return;
+  }
+
+  superSel.disabled = false;
+  for (const t of superTraderList) {
+    const opt = document.createElement("option");
+    opt.value = t.password;
+    const label = (t.display_name && String(t.display_name).trim())
+      ? `${t.display_name} (${t.password})`
+      : t.password;
+    opt.textContent = label;
+    superSel.appendChild(opt);
+  }
+
+  // předvyber prvního a nastav input
+  superSel.selectedIndex = 0;
+  syncSuperNameInput();
+}
+
+function getSelectedSuperTrader() {
+  const code = superSel?.value || "";
+  return superTraderList.find(t => t.password === code) || null;
+}
+
+function syncSuperNameInput() {
+  const t = getSelectedSuperTrader();
+  if (!t) {
+    superNameInput.value = "";
+    return;
+  }
+  superNameInput.value = (t.display_name || "").toString();
+}
+
+async function saveSelectedTraderName() {
+  superMsg.textContent = "";
+  const t = getSelectedSuperTrader();
+  if (!t) return;
+
+  const newName = (superNameInput.value || "").trim();
+
+  // Uloží se do sloupce display_name (je potřeba ho mít v tabulce traders)
+  const { error } = await supabase
+    .from("traders")
+    .update({ display_name: newName })
+    .eq("id", t.id);
+
+  if (error) {
+    superMsg.textContent = "Nepodařilo se uložit jméno (zkontrolujte sloupec display_name a práva/RLS).";
+    debug("Save name error: " + error.message);
+    return false;
+  }
+
+  // aktualizuj lokální cache + dropdown text
+  t.display_name = newName;
+  // update option label
+  const opt = Array.from(superSel.options).find(o => o.value === t.password);
+  if (opt) {
+    opt.textContent = newName ? `${newName} (${t.password})` : t.password;
+  }
+  superMsg.textContent = "Jméno uloženo.";
+  superMsg.classList.remove("error");
+  return true;
+}
+
+async function applyImpersonation() {
+  superMsg.textContent = "";
+  const t = getSelectedSuperTrader();
+  if (!t) return;
+
+  // nastav "jako obchodník"
+  effectiveTraderCode = t.password;
+
+  const dn = (t.display_name || "").trim();
+  effectiveTraderLabel = dn ? `${dn} (${t.password})` : t.password;
+
+  userLabel.textContent = `SUPER → ${effectiveTraderLabel}`;
+
+  // reload dat
+  await nacist();
+}
+
+if (superSel) {
+  superSel.addEventListener("change", () => {
+    syncSuperNameInput();
+  });
+}
+if (superSaveNameBtn) {
+  superSaveNameBtn.addEventListener("click", async () => {
+    superMsg.classList.add("error");
+    await saveSelectedTraderName();
+  });
+}
+if (superApplyBtn) {
+  superApplyBtn.addEventListener("click", async () => {
+    superMsg.classList.add("error");
+    // volitelně uložit jméno před použitím
+    await saveSelectedTraderName();
+    await applyImpersonation();
+  });
+}
+
+async function zrusitStareRezervace() {
     const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     await supabase
       .from("items")
@@ -411,7 +620,7 @@ userLabel.textContent = currentTraderName;
       return;
     }
 
-    const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === currentTraderName);
+    const moje = currentIsAdmin ? data : data.filter(r => r.reserved_by === effectiveTraderCode);
     // Řazení: podle passwordu, který položku rezervoval (reserved_by), ne podle čísla akcie
     moje.sort((a, b) => {
       const A = (a.reserved_by || "").toLowerCase();
@@ -686,6 +895,7 @@ userLabel.textContent = currentTraderName;
   }
 
   async function rezervovat(id) {
+    if (!ensureActingTrader()) return;
     const inputCena = document.getElementById("cena-" + id);
     const inputZakaznik = document.getElementById("zakaznik-" + id);
     const novaCena = parseInt(inputCena.value, 10);
@@ -706,7 +916,7 @@ userLabel.textContent = currentTraderName;
       .update({
         status: "Rezervováno",
         price: novaCena,
-        reserved_by: currentTraderName,
+        reserved_by: effectiveTraderCode,
         reserved_for: zakaznik,
         reserved_at: new Date().toISOString()
       })
@@ -826,6 +1036,7 @@ userLabel.textContent = currentTraderName;
   }
 
   async function submitBulkReserve() {
+    if (!ensureActingTrader()) return;
     const ids = getSelectedAvailableIds();
     if (ids.length === 0) {
       brmMsgEl.textContent = "Není vybrána žádná položka.";
@@ -853,7 +1064,7 @@ userLabel.textContent = currentTraderName;
       .update({
         status: "Rezervováno",
         price: cena,
-        reserved_by: currentTraderName,
+        reserved_by: effectiveTraderCode,
         reserved_for: zakaznik,
         reserved_at: new Date().toISOString()
       })
