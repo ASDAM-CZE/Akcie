@@ -266,8 +266,8 @@
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-    const SUPABASE_URL = "https://pruniywgvomfsghajxpt.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydW5peXdndm9tZnNnaGFqeHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODAzMzAsImV4cCI6MjA4Njk1NjMzMH0.PU1rb1BQ9a_YUNyeq8up4PKTEd5hme_zPNHwc1rkjHY";
+    const SUPABASE_URL = "<<< KEEP YOUR SUPABASE_URL HERE >>>";
+    const SUPABASE_ANON_KEY = "<<< KEEP YOUR SUPABASE_ANON_KEY HERE >>>";
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // ===== STATE =====
@@ -289,6 +289,13 @@
       if (!e) return;
       e.innerHTML = html || "";
     }
+
+    async function rpc(name, args) {
+      const { data, error } = await supabase.rpc(name, args);
+      if (error) throw error;
+      return data;
+    }
+
 
     function onUserStartedFiltering() {
       // When user starts filtering by anything, show all statuses (unset status filter)
@@ -583,29 +590,17 @@
       const createdBy = u?.user?.id;
       if (!createdBy) throw new Error("Nejsi přihlášen.");
 
-      // create deal
-      const { error: insErr } = await supabase.from("deals")
-        .insert([{
-          item_id: itemId,
-          trader_name: traderName,
-          trader_email: traderEmail || null,
-          client_name: clientName,
-          client_email: clientEmail || null,
-          client_address: clientAddress || null,
-          notes: finalNotes || null,
-          status: "RESERVED",
-          created_by: createdBy
-        }]);
-
-      if (insErr) throw insErr;
-
-      // set item status to RESERVED only if AVAILABLE
-      const { error: upErr } = await supabase.from("items")
-        .update({ status: "RESERVED" })
-        .eq("id", itemId)
-        .eq("status", "AVAILABLE");
-
-      if (upErr) throw upErr;
+      
+      // Secure: atomic RPC (deal insert + item update + role & transition checks)
+      await rpc("reserve_one", {
+        p_item_id: itemId,
+        p_trader_name: traderName,
+        p_trader_email: traderEmail || null,
+        p_client_name: clientName,
+        p_client_email: clientEmail || null,
+        p_client_address: clientAddress || null,
+        p_notes: finalNotes || null
+      });
     }
 
     // ===== BULK OPS =====
@@ -646,44 +641,25 @@
       const selected = [...selectedItemIds];
       if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
-      let ok = 0, skipped = 0;
-      const reasons = [];
+      try {
+        const res = await rpc("set_status", { p_item_ids: selected, p_next_status: next });
+        await loadAll();
+        const label = (next === "CONTRACT") ? "smlouva" : "zaplaceno";
 
-      for (const itemId of selected) {
-        const it = items.find(x => x.id === itemId);
-        const d = dealsByItemId.get(itemId);
-        if (!it) { skipped++; reasons.push(`${itemId}: neexistuje`); continue; }
-        if (!d) { skipped++; reasons.push(`${itemLabel(it)}: nemá deal`); continue; }
+        const reasons = (res?.skipped_rows || []).map(r => {
+          const it = items.find(x => x.id === Number(r.item_id));
+          const lbl = it ? itemLabel(it) : String(r.item_id);
+          return `${lbl}: ${r.reason}`;
+        });
 
-        // New order: RESERVED -> CONTRACT -> PAID
-        const needStatus = (next === "CONTRACT") ? "RESERVED" : "CONTRACT";
-        if (d.status !== needStatus) {
-          skipped++;
-          reasons.push(`${itemLabel(it)}: deal není ve stavu ${needStatus}`);
-          continue;
-        }
-
-        try {
-          const patch = { status: next };
-          if (next === "PAID") patch.paid_at = new Date().toISOString();
-          if (next === "CONTRACT") patch.contract_at = new Date().toISOString();
-
-          const { error: dErr } = await supabase.from("deals").update(patch).eq("id", d.id);
-          if (dErr) throw dErr;
-
-          const { error: iErr } = await supabase.from("items").update({ status: next }).eq("id", itemId);
-          if (iErr) throw iErr;
-
-          ok++;
-        } catch (e) {
-          skipped++;
-          reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
-        }
+        setErr(
+          "bulkMsg",
+          `Hromadně ${label}. OK: ${res?.ok ?? 0}, přeskočeno: ${res?.skipped ?? 0}` +
+          (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : "")
+        );
+      } catch (e) {
+        setErr("bulkMsg", e?.message || String(e));
       }
-
-      await loadAll();
-      const label = (next === "CONTRACT") ? "smlouva" : "zaplaceno";
-      setErr("bulkMsg", `Hromadně ${label}. OK: ${ok}, přeskočeno: ${skipped}` + (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : ""));
     }
 
     
@@ -744,16 +720,8 @@
       }
 
       try {
-        // Keep history: mark deal as CANCELLED (so it disappears from active list)
-        const { error: dErr } = await supabase.from("deals")
-          .update({ status: "CANCELLED" })
-          .eq("id", d.id);
-        if (dErr) throw dErr;
-
-        const { error: iErr } = await supabase.from("items")
-          .update({ status: "AVAILABLE" })
-          .eq("id", itemId);
-        if (iErr) throw iErr;
+        // Secure: role + status validation in DB, plus atomic cancel + item reset
+        await rpc("cancel_one", { p_item_id: itemId, p_allow_all: !!allowAll });
 
         await loadAll();
         setErr("bulkMsg", allowAll ? "Admin: zrušeno (položka vrácena do AVAILABLE)." : "Rezervace zrušena (položka vrácena do AVAILABLE).");
@@ -780,10 +748,7 @@
         if (!(it.status === "RESERVED" && d.status === "RESERVED")) { skipped++; reasons.push(`${itemLabel(it)}: není RESERVED`); continue; }
 
         try {
-          const { error: dErr } = await supabase.from("deals").update({ status: "CANCELLED" }).eq("id", d.id);
-          if (dErr) throw dErr;
-          const { error: iErr } = await supabase.from("items").update({ status: "AVAILABLE" }).eq("id", itemId);
-          if (iErr) throw iErr;
+                    await rpc("cancel_one", { p_item_id: itemId, p_allow_all: false });
           ok++;
         } catch (e) {
           skipped++;
@@ -812,10 +777,7 @@
         if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) { skipped++; reasons.push(`${itemLabel(it)}: deal není RESERVED/CONTRACT/PAID`); continue; }
 
         try {
-          const { error: dErr } = await supabase.from("deals").update({ status: "CANCELLED" }).eq("id", d.id);
-          if (dErr) throw dErr;
-          const { error: iErr } = await supabase.from("items").update({ status: "AVAILABLE" }).eq("id", itemId);
-          if (iErr) throw iErr;
+                    await rpc("cancel_one", { p_item_id: itemId, p_allow_all: true });
           ok++;
         } catch (e) {
           skipped++;
