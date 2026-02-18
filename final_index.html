@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Akcie – super evidence</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="font-family:Arial;padding:20px;">
+
+<h2>Super Evidence Akcií</h2>
+
+<div id="loginBox">
+  <input id="email" placeholder="Email" />
+  <input id="password" type="password" placeholder="Heslo" />
+  <button onclick="login()">Přihlásit</button>
+  <div id="loginMsg"></div>
+</div>
+
+<div id="app" style="display:none;">
+  <p>Přihlášen: <b id="userEmail"></b></p>
+  <button onclick="logout()">Odhlásit</button>
+  <hr/>
+  <div id="content"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://vuqneiyaiiyzgczfxfrl.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ1cW5laXlhaWl5emdjemZ4ZnJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNjg4MTgsImV4cCI6MjA4Njk0NDgxOH0.-n08YZ37spjBpi5D56cTjqkXsfK3NN269EBQ91tnmTQ";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    document.getElementById("loginMsg").innerText = error.message;
+  } else {
+    init();
+  }
+}
+
+async function logout() {
+  await supabase.auth.signOut();
+  location.reload();
+}
+
+async function init() {
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return;
+
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("userEmail").innerText = data.user.email;
+
+  loadItems();
+}
+
+async function loadItems() {
+  const { data, error } = await supabase
+    .from("items")
+    .select("*")
+    .order("priority_number", { ascending: true });
+
+  if (error) {
+    document.getElementById("content").innerText = error.message;
+    return;
+  }
+
+  document.getElementById("content").innerHTML =
+    "<pre>" + JSON.stringify(data, null, 2) + "</pre>";
+}
+
+init();
+</script>
+
+</body>
+</html>
