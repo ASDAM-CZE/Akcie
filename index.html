@@ -5,123 +5,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Akcie – super evidence</title>
   <style>
-
-    :root{
-      --bg:#f6f7fb;
-      --card:#ffffff;
-      --text:#111827;
-      --muted:#6b7280;
-      --border:#e5e7eb;
-      --shadow:0 1px 10px rgba(17,24,39,.06);
-      --shadow2:0 10px 25px rgba(17,24,39,.08);
-      --primary:#2563eb;
-      --primaryHover:#1d4ed8;
-      --secondary:#f3f4f6;
-      --secondaryHover:#e5e7eb;
-      --danger:#dc2626;
-      --dangerHover:#b91c1c;
-      --focus:rgba(37,99,235,.25);
-    }
-
-    body{
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      margin:16px;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 600px at 20% -10%, rgba(37,99,235,.10), transparent 55%),
-        radial-gradient(1000px 600px at 90% 10%, rgba(220,38,38,.08), transparent 55%),
-        var(--bg);
-    }
-    .card{
-      background:var(--card);
-      border-radius:14px;
-      padding:14px;
-      box-shadow:var(--shadow);
-      border:1px solid rgba(229,231,235,.9);
-      margin-bottom:12px;
-    }
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
-    label{display:block;font-size:12px;color:#374151;margin-bottom:4px;}
-    input, textarea, select{
-      padding:12px 14px;
-      border:1px solid var(--border);
-      border-radius:14px;
-      background:#fff;
-      outline:none;
-      transition: box-shadow .15s ease, border-color .15s ease;
-    }
-    input, select{ min-width:260px; font-size:16px; } /* bigger dropdowns + inputs */
-    textarea{min-width:360px;}
-    input:focus, textarea:focus, select:focus{
-      border-color:rgba(37,99,235,.6);
-      box-shadow:0 0 0 4px var(--focus);
-    }
-
-    button{
-      padding:10px 12px;
-      border:0;
-      border-radius:12px;
-      cursor:pointer;
-      background:var(--primary);
-      color:#fff;
-      box-shadow:0 1px 0 rgba(17,24,39,.08);
-      transition: background .15s ease, transform .05s ease, box-shadow .15s ease, opacity .15s ease;
-    }
-    button:hover{ background:var(--primaryHover); box-shadow:var(--shadow); }
-    button:active{ transform:translateY(1px); }
-    button.secondary{ background:var(--secondary); color:#111827; border:1px solid rgba(17,24,39,.10); }
-    button.secondary:hover{ background:var(--secondaryHover); }
-    button.danger{ background:var(--danger); }
-    button.danger:hover{ background:var(--dangerHover); }
-    button:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
-
-    .muted{ color:var(--muted); font-size:12px; }
-    code{ background:#f3f4f6; padding:2px 6px; border-radius:8px; border:1px solid rgba(229,231,235,.8); }
-
-    .err{
-      color:var(--danger);
-      font-size:16px;
-      font-weight:800;
-      white-space:pre-wrap;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:4px 10px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:700;
-      border:1px solid rgba(0,0,0,.06);
-      line-height:1.4;
-    }
-    .status-AVAILABLE{ background:#ecfdf5; color:#065f46; border-color:rgba(6,95,70,.18); }
-    .status-RESERVED{ background:#fff7ed; color:#9a3412; border-color:rgba(154,52,18,.18); }
-    .status-CONTRACT{ background:#eef2ff; color:#3730a3; border-color:rgba(55,48,163,.18); }
-    .status-PAID{ background:#eff6ff; color:#1d4ed8; border-color:rgba(29,78,216,.18); }
-    .status-CANCELLED{ background:#f3f4f6; color:#374151; border-color:rgba(55,65,81,.18); }
-
-    .bulkbar{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
-      padding:10px;
-      border-radius:14px;
-      border:1px solid rgba(229,231,235,.9);
-      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80));
-    }
-    .bulkleft{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-
-    .checkbox{ width:18px; height:18px; accent-color:var(--primary); }
-
-    #itemsList .card{ transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease; }
-    #itemsList .card:hover{ box-shadow:var(--shadow2); border-color:rgba(37,99,235,.22); transform:translateY(-1px); }
-
-    hr{ border:none; border-top:1px solid rgba(229,231,235,.9); margin:12px 0; }
-
+    body { font-family: system-ui, Arial, sans-serif; margin: 16px; background:#f7f7f8; }
+    .card { background:#fff; border-radius:12px; padding:14px; box-shadow:0 1px 8px rgba(0,0,0,.06); margin-bottom:12px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    label { display:block; font-size:12px; color:#444; margin-bottom:4px; }
+    input, select, textarea { padding:10px; border:1px solid #ddd; border-radius:10px; min-width: 220px; }
+    textarea { min-width: 320px; }
+    button { padding:10px 12px; border:0; border-radius:10px; cursor:pointer; background:#111; color:#fff; }
+    button.secondary { background:#eee; color:#111; }
+    button.danger { background:#b00020; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .muted { color:#666; font-size: 12px; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; background:#eee; }
+    .list { display:grid; grid-template-columns: 1fr; gap:10px; }
+    .item-title { font-weight:700; }
+    .status-AVAILABLE { background:#e8f5e9; }
+    .status-RESERVED { background:#fff3e0; }
+    .status-CONTRACT { background:#ede7f6; }
+    .status-PAID { background:#e3f2fd; }
+    .err { color:#b00020; font-size:12px; white-space:pre-wrap; }
+    code { background:#f1f1f1; padding:2px 6px; border-radius:6px; }
+    .checkbox { width:18px; height:18px; }
+    .bulkbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    .bulkleft { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
   </style>
 </head>
 <body>
@@ -283,19 +189,6 @@
     // ===== UI helpers =====
     const el = (id) => document.getElementById(id);
     const setErr = (id, msg) => { el(id).textContent = msg || ""; };
-    // Like setErr but allows simple markup (used for success summaries). Keep inputs escaped.
-    function setInfo(id, html) {
-      const e = el(id);
-      if (!e) return;
-      e.innerHTML = html || "";
-    }
-
-    function onUserStartedFiltering() {
-      // When user starts filtering by anything, show all statuses (unset status filter)
-      const sf = el("statusFilter");
-      if (sf) sf.value = "";
-    }
-
     const escapeHtml = (s) => String(s ?? "")
       .replaceAll("&","&amp;").replaceAll("<","&lt;")
       .replaceAll(">","&gt;").replaceAll('"',"&quot;")
@@ -342,16 +235,6 @@
         el("rolePill").textContent = prof.role;
 
         currentRole = prof.role || "";
-
-        // Default view after login: show only AVAILABLE
-        el("statusFilter").value = "AVAILABLE";
-        el("filterType").value = "";
-        el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
-        el("filterValue").disabled = true;
-        el("q").value = "";
-        selectedItemIds.clear();
-        el("chkSelectAll").checked = false;
-
         // UI permissions
         el("btnBulkUnreserve").style.display = (currentRole === "super" || currentRole === "admin") ? "" : "none";
         el("btnBulkCancelAll").style.display = (currentRole === "admin") ? "" : "none";
@@ -513,7 +396,7 @@
     async function loadAll() {
       setErr("formMsg", "");
       setErr("appErr", "");
-      setInfo("bulkMsg", "");
+      setErr("bulkMsg", "");
 
       const { data: itemsData, error: itErr } = await supabase
         .from("items")
@@ -568,14 +451,6 @@
       const clientAddress = el("clientAddress").value.trim();
       const notes = el("notes").value.trim();
 
-      // Automatická poznámka (text e-mailu pro obchodníka) + případná vlastní poznámka
-      const company = "Rezidence Chrudim I a.s.";
-      const shareLabel = itemLabel(items.find(x => x.id === itemId) || { priority_number: null, symbol: "" });
-      const emailText = `Vážený obchodníku,\n\n` +
-        `právě byly pro Vašeho klienta ${clientName} rezervovány ${shareLabel} společnosti ${company}.\n\n` +
-        `S pozdravem\nInvestiční oddělení`;
-      const finalNotes = notes ? (emailText + "\n\nPoznámka: " + notes) : emailText;
-
       if (!traderName) throw new Error("Vyplň jméno obchodníka (Údaje k obchodu).");
       if (!clientName) throw new Error("Vyplň jméno klienta (Údaje k obchodu).");
 
@@ -592,7 +467,7 @@
           client_name: clientName,
           client_email: clientEmail || null,
           client_address: clientAddress || null,
-          notes: finalNotes || null,
+          notes: notes || null,
           status: "RESERVED",
           created_by: createdBy
         }]);
@@ -610,7 +485,7 @@
 
     // ===== BULK OPS =====
     async function bulkReserve() {
-      setInfo("bulkMsg", "");
+      setErr("bulkMsg", "");
       const selected = [...selectedItemIds];
       if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
@@ -629,13 +504,11 @@
         }
       }
       await loadAll();
-      setInfo("bulkMsg", `<span style="color:#065f46;font-weight:800;">PROVEDENO (${ok})</span>, <span style="color:#dc2626;font-weight:800;">NEPROVEDENO (${skipped})</span>` + (reasons.length ? `<div class="muted" style="margin-top:6px;white-space:pre-wrap;">${escapeHtml(reasons.slice(0,30).join("
-")).replaceAll("
-","<br>")}</div>` : ""));
+      setErr("bulkMsg", `Hromadně zarezervováno. OK: ${ok}, přeskočeno: ${skipped}` + (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : ""));
     }
 
     async function bulkStatus(next) {
-      setInfo("bulkMsg", "");
+      setErr("bulkMsg", "");
       const selected = [...selectedItemIds];
       if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
@@ -686,7 +559,7 @@
       el("filterType").value = "";
       el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
       el("filterValue").disabled = true;
-      el("statusFilter").value = "AVAILABLE";
+      el("statusFilter").value = "";
       el("q").value = "";
       selectedItemIds.clear();
       el("chkSelectAll").checked = false;
@@ -696,7 +569,7 @@
 
     // ===== CANCEL / UNRESERVE =====
     async function cancelDealForItem(itemId, { allowAll }) {
-      setInfo("bulkMsg", "");
+      setErr("bulkMsg", "");
       setErr("appErr", "");
 
       const isSuper = (currentRole === "super" || currentRole === "admin");
@@ -756,7 +629,7 @@
     }
 
     async function bulkUnreserve() {
-      setInfo("bulkMsg", "");
+      setErr("bulkMsg", "");
       const isSuper = (currentRole === "super" || currentRole === "admin");
       if (!isSuper) return setErr("bulkMsg", "Pouze super/admin může zrušit rezervace.");
 
@@ -789,7 +662,7 @@
     }
 
     async function bulkCancelAll() {
-      setInfo("bulkMsg", "");
+      setErr("bulkMsg", "");
       if (currentRole !== "admin") return setErr("bulkMsg", "Pouze admin může zrušit vše.");
 
       const selected = [...selectedItemIds];
@@ -856,16 +729,12 @@
 
     el("statusFilter").addEventListener("change", renderList);
     el("filterType").addEventListener("change", () => {
-      onUserStartedFiltering();
       // when type changes, rebuild value options and re-render
       renderDynamicFilterOptions();
       renderList();
     });
-    el("filterValue").addEventListener("change", () => { onUserStartedFiltering(); renderList(); });
-el("q").addEventListener("input", () => {
-      if ((el("q").value || "").trim() !== "") onUserStartedFiltering();
-      renderList();
-    });
+    el("filterValue").addEventListener("change", renderList);
+el("q").addEventListener("input", renderList);
 
     el("chkSelectAll").addEventListener("change", () => {
       const filtered = currentFilteredItems();
