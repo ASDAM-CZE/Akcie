@@ -629,9 +629,16 @@
         }
       }
       await loadAll();
-      setInfo("bulkMsg", `<span style="color:#065f46;font-weight:800;">PROVEDENO (${ok})</span>, <span style="color:#dc2626;font-weight:800;">NEPROVEDENO (${skipped})</span>` + (reasons.length ? `<div class="muted" style="margin-top:6px;white-space:pre-wrap;">${escapeHtml(reasons.slice(0,30).join("
-")).replaceAll("
-","<br>")}</div>` : ""));
+      setInfo(
+        "bulkMsg",
+        `<span style="color:#065f46;font-weight:800;">PROVEDENO (${ok})</span>, ` +
+          `<span style="color:#dc2626;font-weight:800;">NEPROVEDENO (${skipped})</span>` +
+          (reasons.length
+            ? `<div class="muted" style="margin-top:6px;white-space:pre-wrap;">${
+                escapeHtml(reasons.slice(0, 30).join("\n")).replaceAll("\n", "<br>")
+              }</div>`
+            : "")
+      );
     }
 
     async function bulkStatus(next) {
