@@ -331,13 +331,13 @@
         currentRole = prof.role || "";
         
         // Default view after login: show only AVAILABLE
-        el(\"statusFilter\").value = \"AVAILABLE\";
-        el(\"filterType\").value = \"\";
-        el(\"filterValue\").innerHTML = '<option value=\"\">(vyber typ filtru)</option>';
-        el(\"filterValue\").disabled = true;
-        el(\"q\").value = \"\";
+        el("statusFilter").value = "AVAILABLE";
+        el("filterType").value = "";
+        el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
+        el("filterValue").disabled = true;
+        el("q").value = "";
         selectedItemIds.clear();
-        el(\"chkSelectAll\").checked = false;
+        el("chkSelectAll").checked = false;
 // UI permissions
         el("btnBulkUnreserve").style.display = (currentRole === "super" || currentRole === "admin") ? "" : "none";
         el("btnBulkCancelAll").style.display = (currentRole === "admin") ? "" : "none";
