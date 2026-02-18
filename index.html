@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Akcie – super evidence</title>
   <style>
-
     :root{
       --bg:#f6f7fb;
       --card:#ffffff;
@@ -32,6 +31,7 @@
         radial-gradient(1000px 600px at 90% 10%, rgba(220,38,38,.08), transparent 55%),
         var(--bg);
     }
+
     .card{
       background:var(--card);
       border-radius:14px;
@@ -40,8 +40,10 @@
       border:1px solid rgba(229,231,235,.9);
       margin-bottom:12px;
     }
+
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
     label{display:block;font-size:12px;color:#374151;margin-bottom:4px;}
+
     input, textarea, select{
       padding:12px 14px;
       border:1px solid var(--border);
@@ -50,7 +52,7 @@
       outline:none;
       transition: box-shadow .15s ease, border-color .15s ease;
     }
-    input, select{ min-width:260px; font-size:16px; } /* bigger dropdowns + inputs */
+    input, select{ min-width:260px; font-size:16px; }
     textarea{min-width:360px;}
     input:focus, textarea:focus, select:focus{
       border-color:rgba(37,99,235,.6);
@@ -73,7 +75,7 @@
     button.secondary:hover{ background:var(--secondaryHover); }
     button.danger{ background:var(--danger); }
     button.danger:hover{ background:var(--dangerHover); }
-    button:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
+    button:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none; }
 
     .muted{ color:var(--muted); font-size:12px; }
     code{ background:#f3f4f6; padding:2px 6px; border-radius:8px; border:1px solid rgba(229,231,235,.8); }
@@ -114,7 +116,6 @@
       background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.80));
     }
     .bulkleft{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-
     .checkbox{ width:18px; height:18px; accent-color:var(--primary); }
 
     #itemsList .card{ transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease; }
@@ -122,10 +123,31 @@
 
     hr{ border:none; border-top:1px solid rgba(229,231,235,.9); margin:12px 0; }
 
+    .busybar{
+      display:none;
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid rgba(229,231,235,.9);
+      background:#fff;
+      color:#111827;
+      font-size:13px;
+    }
+    .busybar.show{ display:block; }
+    .spinner{
+      width:14px;height:14px;border-radius:50%;
+      border:2px solid rgba(37,99,235,.25);
+      border-top-color: rgba(37,99,235,.95);
+      display:inline-block;
+      animation: spin .8s linear infinite;
+      vertical-align:-2px;
+      margin-right:8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg);} }
   </style>
 </head>
-<body>
 
+<body>
   <div class="card" id="loginCard">
     <h2>Přihlášení (jen super/admin)</h2>
     <div class="row">
@@ -141,7 +163,7 @@
         <button id="btnLogin">Přihlásit</button>
       </div>
     </div>
-    <div class="muted">Project: <code>https://pruniywgvomfsghajxpt.supabase.co</code></div>
+    <div class="muted">Project: <code id="projectUrl"></code></div>
     <div class="err" id="loginMsg"></div>
   </div>
 
@@ -156,6 +178,8 @@
         <button class="secondary" id="btnLogout">Odhlásit</button>
       </div>
     </div>
+
+    <div class="busybar" id="busyBar"><span class="spinner"></span><span id="busyText">Probíhá…</span></div>
     <div class="err" id="appErr"></div>
   </div>
 
@@ -168,10 +192,9 @@
       </div>
       <div>
         <label>Obchodník – email</label>
-        <input id="traderEmail" placeholder="obchodnik@firma.cz" />
+        <input id="traderEmail" placeholder="obchodnik@firma.cz" inputmode="email" />
       </div>
     </div>
-
     <div class="row">
       <div>
         <label>Klient – jméno</label>
@@ -179,25 +202,22 @@
       </div>
       <div>
         <label>Klient – email</label>
-        <input id="clientEmail" placeholder="klient@email.cz" />
+        <input id="clientEmail" placeholder="klient@email.cz" inputmode="email" />
       </div>
       <div>
         <label>Klient – adresa</label>
         <input id="clientAddress" placeholder="Ulice, město" />
       </div>
     </div>
-
     <div class="row">
       <div>
         <label>Poznámka</label>
         <textarea id="notes" rows="3" placeholder="Poznámka k obchodu..."></textarea>
       </div>
     </div>
-
     <div class="row">
       <button class="secondary" id="btnClear">Vyčistit</button>
     </div>
-
     <div class="err" id="formMsg"></div>
     <div class="muted">Hromadná rezervace použije údaje z tohoto formuláře.</div>
   </div>
@@ -258,17 +278,23 @@
     </div>
 
     <div class="err" id="bulkMsg" style="margin-top:10px;"></div>
-    <hr style="border:none;border-top:1px solid #eee; margin:12px 0;">
-
+    <hr>
     <div class="list" id="itemsList"></div>
   </div>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-    const SUPABASE_URL = "https://pruniywgvomfsghajxpt.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydW5peXdndm9tZnNnaGFqeHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODAzMzAsImV4cCI6MjA4Njk1NjMzMH0.PU1rb1BQ9a_YUNyeq8up4PKTEd5hme_zPNHwc1rkjHY";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // === CONFIG (centralizované) ===
+    // (1) můžeš přepsat přes window.SUPABASE_URL / window.SUPABASE_ANON_KEY (např. v hostingu)
+    // (2) nebo to nech takhle natvrdo jako doposud
+    const CONFIG = {
+      SUPABASE_URL: window.SUPABASE_URL || "https://pruniywgvomfsghajxpt.supabase.co",
+      SUPABASE_ANON_KEY: window.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydW5peXdndm9tZnNnaGFqeHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODAzMzAsImV4cCI6MjA4Njk1NjMzMH0.PU1rb1BQ9a_YUNyeq8up4PKTEd5hme_zPNHwc1rkjHY"
+    };
+
+    const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    document.getElementById("projectUrl").textContent = CONFIG.SUPABASE_URL;
 
     // ===== STATE =====
     let items = [];
@@ -278,84 +304,123 @@
     let traderEmails = [];
     let clients = [];
     let clientEmails = [];
-    let currentRole = ""; // super | admin
+    let currentRole = "";   // super | admin
+    let lastFilteredIds = []; // cache pro select-all
+    let isBusy = false;
 
     // ===== UI helpers =====
     const el = (id) => document.getElementById(id);
-    const setErr = (id, msg) => { el(id).textContent = msg || ""; };
-    // Like setErr but allows simple markup (used for success summaries). Keep inputs escaped.
-    function setInfo(id, html) {
-      const e = el(id);
-      if (!e) return;
-      e.innerHTML = html || "";
-    }
-
-    async function rpc(name, args) {
-      const { data, error } = await supabase.rpc(name, args);
-      if (error) throw error;
-      return data;
-    }
-
-
-    function onUserStartedFiltering() {
-      // When user starts filtering by anything, show all statuses (unset status filter)
-      const sf = el("statusFilter");
-      if (sf) sf.value = "";
-    }
 
     const escapeHtml = (s) => String(s ?? "")
       .replaceAll("&","&amp;").replaceAll("<","&lt;")
       .replaceAll(">","&gt;").replaceAll('"',"&quot;")
       .replaceAll("'","&#039;");
 
-    const pad3 = (n) => String(n ?? "").padStart(3, "0");
+    function setText(id, msg){
+      const e = el(id);
+      if (!e) return;
+      e.textContent = msg || "";
+    }
 
-    function itemLabel(it) {
+    // jen pro controlled HTML (vkládáme jen naše vlastní markup + ESCAPE)
+    function setHtml(id, html){
+      const e = el(id);
+      if (!e) return;
+      e.innerHTML = html || "";
+    }
+
+    function setBusy(next, text="Probíhá…"){
+      isBusy = !!next;
+      const bar = el("busyBar");
+      const t = el("busyText");
+      if (t) t.textContent = text;
+      if (bar) bar.classList.toggle("show", isBusy);
+
+      // disable důležitých tlačítek, aby nešlo klikat 2×
+      [
+        "btnLogin","btnRefresh","btnLogout",
+        "btnBulkReserve","btnBulkContract","btnBulkPaid","btnBulkUnreserve","btnBulkCancelAll",
+        "btnResetFilters","chkSelectAll"
+      ].forEach(id => { const b = el(id); if (b) b.disabled = isBusy; });
+
+      // inputs necháváme aktivní, jen akce blokujeme
+    }
+
+    function pad3(n){ return String(n ?? "").padStart(3, "0"); }
+
+    function itemLabel(it){
       const num = (it.priority_number != null) ? it.priority_number : null;
       if (num != null) return `AKCIE Č. ${pad3(num)}`;
       const m = String(it.symbol || "").match(/(\d+)$/);
       return `AKCIE Č. ${pad3(m ? m[1] : "")}`;
     }
 
-    function showLogin() {
+    function effectiveStatus(it){
+      // Zdroj pravdy: deal.status (pokud existuje), jinak item.status
+      const d = dealsByItemId.get(it.id);
+      return (d?.status) || it.status;
+    }
+
+    async function rpc(name, args){
+      const { data, error } = await supabase.rpc(name, args);
+      if (error) throw error;
+      return data;
+    }
+
+    // debounce pro vyhledávání
+    function debounce(fn, ms=300){
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    }
+
+    function showLogin(){
       el("loginCard").style.display = "";
       el("appCard").style.display = "none";
       el("formCard").style.display = "none";
       el("listCard").style.display = "none";
-      setErr("loginMsg", "");
-      setErr("appErr", "");
+      setText("loginMsg","");
+      setText("appErr","");
+      setText("bulkMsg","");
+      setBusy(false);
     }
 
-    async function showApp() {
+    async function showApp(){
       el("loginCard").style.display = "none";
       el("appCard").style.display = "";
       el("formCard").style.display = "";
       el("listCard").style.display = "";
-      setErr("appErr", "");
+      setText("appErr","");
+      setText("bulkMsg","");
+      setBusy(false);
 
       const { data: u } = await supabase.auth.getUser();
       const user = u?.user;
       if (!user) return showLogin();
 
-      try {
+      try{
+        setBusy(true, "Načítám profil…");
         const { data: prof, error } = await supabase
           .from("profiles")
           .select("role, full_name")
           .eq("user_id", user.id)
           .single();
+
         if (error) throw error;
 
         el("who").textContent = prof.full_name || user.email;
         el("rolePill").textContent = prof.role;
-
         currentRole = prof.role || "";
 
-        // Default view after login: show only AVAILABLE
+        // Default po loginu: AVAILABLE
         el("statusFilter").value = "AVAILABLE";
         el("filterType").value = "";
         el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
         el("filterValue").disabled = true;
         el("q").value = "";
+
         selectedItemIds.clear();
         el("chkSelectAll").checked = false;
 
@@ -364,29 +429,30 @@
         el("btnBulkCancelAll").style.display = (currentRole === "admin") ? "" : "none";
 
         await loadAll();
-      } catch (e) {
-        setErr("appErr",
+      } catch(e){
+        setText("appErr",
           "Chyba profilu/role. Vlož do public.profiles řádek pro svůj User ID (UUID) s rolí super/admin.\n\n" +
           (e?.message || String(e))
         );
+      } finally {
+        setBusy(false);
       }
     }
 
-    function updateSelCount() {
+    function updateSelCount(){
       el("selCount").textContent = String(selectedItemIds.size);
     }
 
-    function renderDynamicFilterOptions() {
+    function renderDynamicFilterOptions(){
       const type = el("filterType").value;
       const sel = el("filterValue");
-
       let options = [];
       if (type === "trader_name") options = traders;
       if (type === "trader_email") options = traderEmails;
       if (type === "client_name") options = clients;
       if (type === "client_email") options = clientEmails;
 
-      if (!type) {
+      if (!type){
         sel.innerHTML = '<option value="">(vyber typ filtru)</option>';
         sel.disabled = true;
         return;
@@ -398,75 +464,78 @@
         '<option value="">(vše)</option>' +
         options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("");
 
-      // restore if possible
       sel.value = options.includes(current) ? current : "";
     }
 
-
-    function currentFilteredItems() {
+    function currentFilteredItems(){
       const statusF = el("statusFilter").value;
       const filterType = el("filterType").value;
       const filterValue = el("filterValue").value;
       const q = (el("q").value || "").trim().toLowerCase();
 
-      return items.filter(it => {
+      const out = [];
+      for (const it of items){
         const d = dealsByItemId.get(it.id);
+        const st = (d?.status) || it.status;
 
-        // Dynamic dropdown filter (trader/client + name/email)
-        if (filterType && filterValue) {
-          if (!d) return false;
-          if (d[filterType] !== filterValue) return false;
-          if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) return false;
+        // dropdown filtr (trader/client) má smysl jen tam, kde deal existuje
+        if (filterType && filterValue){
+          if (!d) continue;
+          if (d[filterType] !== filterValue) continue;
+          // v původním kódu se to omezovalo jen na RESERVED/CONTRACT/PAID – zachováno
+          if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) continue;
         }
 
+        if (statusF && st !== statusF) continue;
 
-        if (statusF && it.status !== statusF) return false;
+        if (q){
+          const hay = [
+            itemLabel(it),
+            String(it.priority_number ?? ""),
+            d?.trader_name, d?.trader_email, d?.client_name, d?.client_email
+          ].filter(Boolean).join(" ").toLowerCase();
 
-        if (!q) return true;
+          if (!hay.includes(q)) continue;
+        }
 
-        const hay = [
-          itemLabel(it),
-          String(it.priority_number ?? ""),
-          d?.trader_name, d?.trader_email, d?.client_name, d?.client_email
-        ].filter(Boolean).join(" ").toLowerCase();
-
-        return hay.includes(q);
-      });
+        out.push(it);
+      }
+      return out;
     }
 
-    function renderList() {
-      const filtered = currentFilteredItems();
-
-      // select-all reflects current filter
-      const allVisibleSelected = filtered.length > 0 && filtered.every(it => selectedItemIds.has(it.id));
+    function recomputeSelectAllCheckbox(){
+      const allVisibleSelected = lastFilteredIds.length > 0 && lastFilteredIds.every(id => selectedItemIds.has(id));
       el("chkSelectAll").checked = allVisibleSelected;
+    }
+
+    function renderList(){
+      const filtered = currentFilteredItems();
+      lastFilteredIds = filtered.map(it => it.id);
+      recomputeSelectAllCheckbox();
 
       el("itemsList").innerHTML = filtered.map(it => {
         const d = dealsByItemId.get(it.id);
-        const pill = `<span class="pill status-${it.status}">${it.status}</span>`;
+        const st = effectiveStatus(it);
+        const pill = `<span class="pill status-${escapeHtml(st)}">${escapeHtml(st)}</span>`;
+
         const line2 = d
-          ? `<div class="muted">${escapeHtml(d.trader_name)} → ${escapeHtml(d.client_name)} • Deal #${d.id}</div>`
+          ? `<div class="muted">${escapeHtml(d.trader_name)} → ${escapeHtml(d.client_name)} • Deal #${escapeHtml(d.id)}</div>`
           : `<div class="muted">Bez dealu</div>`;
 
         const checked = selectedItemIds.has(it.id) ? "checked" : "";
 
-        const actions = (() => {
-          if (!d) return "";
-          const isSuper = (currentRole === "super" || currentRole === "admin");
-          const isAdmin = (currentRole === "admin");
+        const isSuper = (currentRole === "super" || currentRole === "admin");
+        const isAdmin = (currentRole === "admin");
 
-          // Super/Admin can only cancel reservation (not contract/payment)
-          if (isSuper && it.status === "RESERVED" && d.status === "RESERVED") {
-            return `<button class="secondary" data-unreserve="${it.id}">Zrušit rezervaci</button>`;
+        // Akce: super/admin smí zrušit jen RESERVED; admin může cancel-all u CONTRACT/PAID
+        let actions = "";
+        if (d){
+          if (isSuper && st === "RESERVED" && d.status === "RESERVED"){
+            actions = `<button class="secondary" data-unreserve="${it.id}">Zrušit rezervaci</button>`;
+          } else if (isAdmin && (st === "CONTRACT" || st === "PAID") && (d.status === "CONTRACT" || d.status === "PAID")){
+            actions = `<button class="danger" data-cancelall="${it.id}">Admin: zrušit vše</button>`;
           }
-
-          // Admin can cancel everything (including CONTRACT/PAID)
-          if (isAdmin && (it.status === "CONTRACT" || it.status === "PAID") && (d.status === "CONTRACT" || d.status === "PAID")) {
-            return `<button class="danger" data-cancelall="${it.id}">Admin: zrušit vše</button>`;
-          }
-
-          return "";
-        })();
+        }
 
         return `
           <div class="card" style="margin:0;">
@@ -486,88 +555,76 @@
         `;
       }).join("");
 
-      document.querySelectorAll("[data-chk]").forEach(chk => {
-        chk.addEventListener("change", () => {
-          const id = Number(chk.getAttribute("data-chk"));
-          if (chk.checked) selectedItemIds.add(id);
-          else selectedItemIds.delete(id);
-          updateSelCount();
-          const filteredNow = currentFilteredItems();
-          el("chkSelectAll").checked = filteredNow.length > 0 && filteredNow.every(it => selectedItemIds.has(it.id));
-        });
-      });
-
-      // Action buttons (cancel reservation / admin cancel)
-      document.querySelectorAll("[data-unreserve]").forEach(btn => {
-        btn.addEventListener("click", async (ev) => {
-          ev.preventDefault();
-          const id = Number(btn.getAttribute("data-unreserve"));
-          await cancelDealForItem(id, { allowAll: false });
-        });
-      });
-
-      document.querySelectorAll("[data-cancelall]").forEach(btn => {
-        btn.addEventListener("click", async (ev) => {
-          ev.preventDefault();
-          const id = Number(btn.getAttribute("data-cancelall"));
-          await cancelDealForItem(id, { allowAll: true });
-        });
-      });
-
       updateSelCount();
     }
 
-    async function loadAll() {
-      setErr("formMsg", "");
-      setErr("appErr", "");
-      setInfo("bulkMsg", "");
+    async function loadAll(){
+      setText("formMsg", "");
+      setText("appErr", "");
+      setText("bulkMsg", "");
 
-      const { data: itemsData, error: itErr } = await supabase
-        .from("items")
-        .select("id,symbol,company,priority_number,status,updated_at")
-        .order("priority_number", { ascending: true, nullsFirst: false })
-        .order("id", { ascending: true });
+      try{
+        setBusy(true, "Načítám data…");
 
-      if (itErr) throw itErr;
-      items = itemsData || [];
+        const { data: itemsData, error: itErr } = await supabase
+          .from("items")
+          .select("id,symbol,company,priority_number,status,updated_at")
+          .order("priority_number", { ascending: true, nullsFirst: false })
+          .order("id", { ascending: true });
 
-      const { data: dealsData, error: dErr } = await supabase
-        .from("deals")
-        .select("id,item_id,trader_name,trader_email,client_name,client_email,client_address,notes,status,paid_at,contract_at,created_at,updated_at")
-        .in("status", ["RESERVED","CONTRACT","PAID"]);
+        if (itErr) throw itErr;
+        items = itemsData || [];
 
-      if (dErr) throw dErr;
+        const { data: dealsData, error: dErr } = await supabase
+          .from("deals")
+          .select("id,item_id,trader_name,trader_email,client_name,client_email,client_address,notes,status,paid_at,contract_at,created_at,updated_at")
+          .in("status", ["RESERVED","CONTRACT","PAID"]);
 
-      dealsByItemId = new Map();
-      const traderSet = new Set();
-      const traderEmailSet = new Set();
-      const clientSet = new Set();
-      const clientEmailSet = new Set();
-      (dealsData || []).forEach(d => {
-        const prev = dealsByItemId.get(d.item_id);
-        if (!prev || new Date(d.updated_at) > new Date(prev.updated_at)) {
-          dealsByItemId.set(d.item_id, d);
-        }
-        if (d.trader_name) traderSet.add(d.trader_name);
-        if (d.trader_email) traderEmailSet.add(d.trader_email);
-        if (d.client_name) clientSet.add(d.client_name);
-        if (d.client_email) clientEmailSet.add(d.client_email);
-      });
-      traders = Array.from(traderSet).sort((a,b) => a.localeCompare(b, "cs"));
+        if (dErr) throw dErr;
 
-      
-      traderEmails = Array.from(traderEmailSet).sort((a,b)=>a.localeCompare(b,"cs"));
-      clients = Array.from(clientSet).sort((a,b)=>a.localeCompare(b,"cs"));
-      clientEmails = Array.from(clientEmailSet).sort((a,b)=>a.localeCompare(b,"cs"));
-// prune selections to existing items
-      const idSet = new Set(items.map(x => x.id));
-      selectedItemIds = new Set([...selectedItemIds].filter(id => idSet.has(id)));
+        dealsByItemId = new Map();
+        const traderSet = new Set();
+        const traderEmailSet = new Set();
+        const clientSet = new Set();
+        const clientEmailSet = new Set();
 
-      renderDynamicFilterOptions();
-      renderList();
-}
+        (dealsData || []).forEach(d => {
+          const prev = dealsByItemId.get(d.item_id);
+          if (!prev || new Date(d.updated_at) > new Date(prev.updated_at)){
+            dealsByItemId.set(d.item_id, d);
+          }
+          if (d.trader_name) traderSet.add(d.trader_name);
+          if (d.trader_email) traderEmailSet.add(d.trader_email);
+          if (d.client_name) clientSet.add(d.client_name);
+          if (d.client_email) clientEmailSet.add(d.client_email);
+        });
 
-    async function reserveDealForItem(itemId) {
+        traders = Array.from(traderSet).sort((a,b)=>a.localeCompare(b, "cs"));
+        traderEmails = Array.from(traderEmailSet).sort((a,b)=>a.localeCompare(b,"cs"));
+        clients = Array.from(clientSet).sort((a,b)=>a.localeCompare(b,"cs"));
+        clientEmails = Array.from(clientEmailSet).sort((a,b)=>a.localeCompare(b,"cs"));
+
+        // prune selection na existující items
+        const idSet = new Set(items.map(x => x.id));
+        selectedItemIds = new Set([...selectedItemIds].filter(id => idSet.has(id)));
+
+        renderDynamicFilterOptions();
+        renderList();
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function buildAutoEmailText({ clientName, shareLabel, company }){
+      // ponecháno jako v původním kódu, jen jako funkce
+      return (
+        `Vážený obchodníku,\n\n` +
+        `právě byly pro Vašeho klienta ${clientName} rezervovány ${shareLabel} společnosti ${company}.\n\n` +
+        `S pozdravem\nInvestiční oddělení`
+      );
+    }
+
+    async function reserveDealForItem(itemId){
       const traderName = el("traderName").value.trim();
       const traderEmail = el("traderEmail").value.trim();
       const clientName = el("clientName").value.trim();
@@ -575,12 +632,11 @@
       const clientAddress = el("clientAddress").value.trim();
       const notes = el("notes").value.trim();
 
-      // Automatická poznámka (text e-mailu pro obchodníka) + případná vlastní poznámka
       const company = "Rezidence Chrudim I a.s.";
-      const shareLabel = itemLabel(items.find(x => x.id === itemId) || { priority_number: null, symbol: "" });
-      const emailText = `Vážený obchodníku,\n\n` +
-        `právě byly pro Vašeho klienta ${clientName} rezervovány ${shareLabel} společnosti ${company}.\n\n` +
-        `S pozdravem\nInvestiční oddělení`;
+      const it = items.find(x => x.id === itemId);
+      const shareLabel = itemLabel(it || { priority_number:null, symbol:"" });
+
+      const emailText = buildAutoEmailText({ clientName, shareLabel, company });
       const finalNotes = notes ? (emailText + "\n\nPoznámka: " + notes) : emailText;
 
       if (!traderName) throw new Error("Vyplň jméno obchodníka (Údaje k obchodu).");
@@ -590,8 +646,6 @@
       const createdBy = u?.user?.id;
       if (!createdBy) throw new Error("Nejsi přihlášen.");
 
-      
-      // Secure: atomic RPC (deal insert + item update + role & transition checks)
       await rpc("reserve_one", {
         p_item_id: itemId,
         p_trader_name: traderName,
@@ -604,68 +658,74 @@
     }
 
     // ===== BULK OPS =====
-    async function bulkReserve() {
-      setInfo("bulkMsg", "");
+    async function bulkReserve(){
+      setText("bulkMsg","");
       const selected = [...selectedItemIds];
-      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
+      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
 
+      setBusy(true, "Provádím hromadnou rezervaci…");
       let ok = 0, skipped = 0;
       const reasons = [];
-      for (const itemId of selected) {
-        const it = items.find(x => x.id === itemId);
-        if (!it) { skipped++; reasons.push(`${itemId}: neexistuje`); continue; }
-        if (it.status !== "AVAILABLE") { skipped++; reasons.push(`${itemLabel(it)}: není AVAILABLE`); continue; }
-        try {
-          await reserveDealForItem(itemId);
-          ok++;
-        } catch (e) {
-          skipped++;
-          reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
+
+      try{
+        for (const itemId of selected){
+          const it = items.find(x => x.id === itemId);
+          if (!it){ skipped++; reasons.push(`${itemId}: neexistuje`); continue; }
+
+          // kontrola dostupnosti podle item.status (rychlá) – skutečná kontrola je v DB v RPC
+          if (effectiveStatus(it) !== "AVAILABLE"){ skipped++; reasons.push(`${itemLabel(it)}: není AVAILABLE`); continue; }
+
+          try{
+            await reserveDealForItem(itemId);
+            ok++;
+          } catch(e){
+            skipped++;
+            reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
+          }
         }
-      }
-      await loadAll();
-      setInfo(
-        "bulkMsg",
-        `<span style="color:#065f46;font-weight:800;">PROVEDENO (${ok})</span>, ` +
+
+        await loadAll();
+
+        const safeReasons = escapeHtml(reasons.slice(0,30).join("\n")).replaceAll("\n","<br>");
+        setHtml("bulkMsg",
+          `<span style="color:#065f46;font-weight:800;">PROVEDENO (${ok})</span>, ` +
           `<span style="color:#dc2626;font-weight:800;">NEPROVEDENO (${skipped})</span>` +
-          (reasons.length
-            ? `<div class="muted" style="margin-top:6px;white-space:pre-wrap;">${
-                escapeHtml(reasons.slice(0, 30).join("\n")).replaceAll("\n", "<br>")
-              }</div>`
-            : "")
-      );
+          (reasons.length ? `<div class="muted" style="margin-top:6px;white-space:pre-wrap;">${safeReasons}</div>` : "")
+        );
+      } finally {
+        setBusy(false);
+      }
     }
 
-    async function bulkStatus(next) {
-      setInfo("bulkMsg", "");
+    async function bulkStatus(next){
+      setText("bulkMsg","");
       const selected = [...selectedItemIds];
-      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
+      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
 
-      try {
+      setBusy(true, `Nastavuji status ${next}…`);
+      try{
         const res = await rpc("set_status", { p_item_ids: selected, p_next_status: next });
         await loadAll();
-        const label = (next === "CONTRACT") ? "smlouva" : "zaplaceno";
 
+        const label = (next === "CONTRACT") ? "smlouva" : "zaplaceno";
         const reasons = (res?.skipped_rows || []).map(r => {
           const it = items.find(x => x.id === Number(r.item_id));
           const lbl = it ? itemLabel(it) : String(r.item_id);
           return `${lbl}: ${r.reason}`;
         });
 
-        setErr(
-          "bulkMsg",
+        setText("bulkMsg",
           `Hromadně ${label}. OK: ${res?.ok ?? 0}, přeskočeno: ${res?.skipped ?? 0}` +
-          (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : "")
+          (reasons.length ? "\n" + reasons.slice(0,30).join("\n") : "")
         );
-      } catch (e) {
-        setErr("bulkMsg", e?.message || String(e));
+      } catch(e){
+        setText("bulkMsg", e?.message || String(e));
+      } finally {
+        setBusy(false);
       }
     }
 
-    
-
-    // ===== FILTER RESET =====
-    function resetFilters() {
+    function resetFilters(){
       el("filterType").value = "";
       el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
       el("filterValue").disabled = true;
@@ -678,139 +738,165 @@
     }
 
     // ===== CANCEL / UNRESERVE =====
-    async function cancelDealForItem(itemId, { allowAll }) {
-      setInfo("bulkMsg", "");
-      setErr("appErr", "");
+    async function cancelDealForItem(itemId, { allowAll }){
+      setText("bulkMsg","");
+      setText("appErr","");
 
       const isSuper = (currentRole === "super" || currentRole === "admin");
       const isAdmin = (currentRole === "admin");
 
-      if (allowAll && !isAdmin) {
-        setErr("bulkMsg", "Pouze admin může zrušit vše (včetně smlouvy/platby).");
+      if (allowAll && !isAdmin){
+        setText("bulkMsg", "Pouze admin může zrušit vše (včetně smlouvy/platby).");
         return;
       }
-      if (!allowAll && !isSuper) {
-        setErr("bulkMsg", "Pouze super/admin může zrušit rezervaci.");
+      if (!allowAll && !isSuper){
+        setText("bulkMsg", "Pouze super/admin může zrušit rezervaci.");
         return;
       }
 
       const it = items.find(x => x.id === itemId);
       const d = dealsByItemId.get(itemId);
-
-      if (!it || !d) {
-        setErr("bulkMsg", "Nelze zrušit: položka nebo deal nenalezen.");
+      if (!it || !d){
+        setText("bulkMsg", "Nelze zrušit: položka nebo deal nenalezen.");
         return;
       }
 
-      // Permissions by status
-      if (!allowAll) {
-        // Super/admin: only RESERVED
-        if (!(it.status === "RESERVED" && d.status === "RESERVED")) {
-          setErr("bulkMsg", "Lze zrušit jen rezervaci (status RESERVED).");
+      const st = effectiveStatus(it);
+
+      if (!allowAll){
+        if (!(st === "RESERVED" && d.status === "RESERVED")){
+          setText("bulkMsg", "Lze zrušit jen rezervaci (status RESERVED).");
+          return;
+        }
+      } else {
+        if (!["RESERVED","CONTRACT","PAID"].includes(d.status)){
+          setText("bulkMsg", "Deal není ve stavu RESERVED/CONTRACT/PAID.");
           return;
         }
       }
 
-      // Admin cancel-all: allow RESERVED/CONTRACT/PAID
-      if (allowAll) {
-        if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) {
-          setErr("bulkMsg", "Deal není ve stavu RESERVED/CONTRACT/PAID.");
-          return;
-        }
-      }
-
-      try {
-        // Secure: role + status validation in DB, plus atomic cancel + item reset
+      setBusy(true, allowAll ? "Admin ruší…":"Ruším rezervaci…");
+      try{
         await rpc("cancel_one", { p_item_id: itemId, p_allow_all: !!allowAll });
+        await loadAll();
+        setText("bulkMsg", allowAll ? "Admin: zrušeno (položka vrácena do AVAILABLE)." : "Rezervace zrušena (položka vrácena do AVAILABLE).");
+      } catch(e){
+        setText("bulkMsg", e?.message || String(e));
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function bulkUnreserve(){
+      setText("bulkMsg","");
+      const isSuper = (currentRole === "super" || currentRole === "admin");
+      if (!isSuper) return setText("bulkMsg", "Pouze super/admin může zrušit rezervace.");
+
+      const selected = [...selectedItemIds];
+      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
+
+      setBusy(true, "Ruším rezervace…");
+      let ok = 0, skipped = 0;
+      const reasons = [];
+
+      try{
+        for (const itemId of selected){
+          const it = items.find(x => x.id === itemId);
+          const d = dealsByItemId.get(itemId);
+          if (!it || !d){ skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
+
+          const st = effectiveStatus(it);
+          if (!(st === "RESERVED" && d.status === "RESERVED")){ skipped++; reasons.push(`${itemLabel(it)}: není RESERVED`); continue; }
+
+          try{
+            await rpc("cancel_one", { p_item_id: itemId, p_allow_all: false });
+            ok++;
+          } catch(e){
+            skipped++;
+            reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
+          }
+        }
 
         await loadAll();
-        setErr("bulkMsg", allowAll ? "Admin: zrušeno (položka vrácena do AVAILABLE)." : "Rezervace zrušena (položka vrácena do AVAILABLE).");
-      } catch (e) {
-        setErr("bulkMsg", e?.message || String(e));
+        setText("bulkMsg",
+          `Zrušení rezervací hotovo. OK: ${ok}, přeskočeno: ${skipped}` +
+          (reasons.length ? "\n" + reasons.slice(0,30).join("\n") : "")
+        );
+      } finally {
+        setBusy(false);
       }
     }
 
-    async function bulkUnreserve() {
-      setInfo("bulkMsg", "");
-      const isSuper = (currentRole === "super" || currentRole === "admin");
-      if (!isSuper) return setErr("bulkMsg", "Pouze super/admin může zrušit rezervace.");
+    async function bulkCancelAll(){
+      setText("bulkMsg","");
+      if (currentRole !== "admin") return setText("bulkMsg", "Pouze admin může zrušit vše.");
 
       const selected = [...selectedItemIds];
-      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
+      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
 
+      setBusy(true, "Admin ruší vše…");
       let ok = 0, skipped = 0;
       const reasons = [];
 
-      for (const itemId of selected) {
-        const it = items.find(x => x.id === itemId);
-        const d = dealsByItemId.get(itemId);
-        if (!it || !d) { skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
-        if (!(it.status === "RESERVED" && d.status === "RESERVED")) { skipped++; reasons.push(`${itemLabel(it)}: není RESERVED`); continue; }
+      try{
+        for (const itemId of selected){
+          const it = items.find(x => x.id === itemId);
+          const d = dealsByItemId.get(itemId);
+          if (!it || !d){ skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
 
-        try {
-                    await rpc("cancel_one", { p_item_id: itemId, p_allow_all: false });
-          ok++;
-        } catch (e) {
-          skipped++;
-          reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
+          if (!["RESERVED","CONTRACT","PAID"].includes(d.status)){ skipped++; reasons.push(`${itemLabel(it)}: deal není RESERVED/CONTRACT/PAID`); continue; }
+
+          try{
+            await rpc("cancel_one", { p_item_id: itemId, p_allow_all: true });
+            ok++;
+          } catch(e){
+            skipped++;
+            reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
+          }
         }
+
+        await loadAll();
+        setText("bulkMsg",
+          `Admin: zrušeno. OK: ${ok}, přeskočeno: ${skipped}` +
+          (reasons.length ? "\n" + reasons.slice(0,30).join("\n") : "")
+        );
+      } finally {
+        setBusy(false);
       }
-
-      await loadAll();
-      setErr("bulkMsg", `Zrušení rezervací hotovo. OK: ${ok}, přeskočeno: ${skipped}` + (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : ""));
     }
-
-    async function bulkCancelAll() {
-      setInfo("bulkMsg", "");
-      if (currentRole !== "admin") return setErr("bulkMsg", "Pouze admin může zrušit vše.");
-
-      const selected = [...selectedItemIds];
-      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
-
-      let ok = 0, skipped = 0;
-      const reasons = [];
-
-      for (const itemId of selected) {
-        const it = items.find(x => x.id === itemId);
-        const d = dealsByItemId.get(itemId);
-        if (!it || !d) { skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
-        if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) { skipped++; reasons.push(`${itemLabel(it)}: deal není RESERVED/CONTRACT/PAID`); continue; }
-
-        try {
-                    await rpc("cancel_one", { p_item_id: itemId, p_allow_all: true });
-          ok++;
-        } catch (e) {
-          skipped++;
-          reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
-        }
-      }
-
-      await loadAll();
-      setErr("bulkMsg", `Admin: zrušeno. OK: ${ok}, přeskočeno: ${skipped}` + (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : ""));
-    }
-
 
     // ===== EVENTS =====
     el("btnLogin").addEventListener("click", async () => {
-      try {
-        setErr("loginMsg", "");
+      try{
+        setText("loginMsg","");
+        setBusy(true, "Přihlašuji…");
+
         const email = el("email").value.trim();
         const password = el("password").value;
+
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+
         await showApp();
-      } catch (e) {
-        setErr("loginMsg", e?.message || String(e));
+      } catch(e){
+        setText("loginMsg", e?.message || String(e));
+      } finally {
+        setBusy(false);
       }
     });
 
     el("btnLogout").addEventListener("click", async () => {
-      await supabase.auth.signOut();
-      showLogin();
+      setBusy(true, "Odhlašuji…");
+      try{
+        await supabase.auth.signOut();
+        showLogin();
+      } finally {
+        setBusy(false);
+      }
     });
 
     el("btnRefresh").addEventListener("click", async () => {
-      try { await loadAll(); } catch (e) { setErr("appErr", e?.message || String(e)); }
+      try{ await loadAll(); } catch(e){ setText("appErr", e?.message || String(e)); }
     });
 
     el("btnClear").addEventListener("click", () => {
@@ -820,54 +906,100 @@
       el("clientEmail").value = "";
       el("clientAddress").value = "";
       el("notes").value = "";
-      setErr("formMsg", "");
+      setText("formMsg","");
     });
 
+    // Filtry
     el("statusFilter").addEventListener("change", renderList);
+
     el("filterType").addEventListener("change", () => {
-      onUserStartedFiltering();
-      // when type changes, rebuild value options and re-render
+      // když začne filtrovat, necháme statusFilter prázdný (jako dřív), ale jen pokud už něco filtruje
+      el("statusFilter").value = "";
       renderDynamicFilterOptions();
       renderList();
     });
-    el("filterValue").addEventListener("change", () => { onUserStartedFiltering(); renderList(); });
-el("q").addEventListener("input", () => {
-      if ((el("q").value || "").trim() !== "") onUserStartedFiltering();
+
+    el("filterValue").addEventListener("change", () => {
+      el("statusFilter").value = "";
       renderList();
     });
 
+    el("q").addEventListener("input", debounce(() => {
+      if ((el("q").value || "").trim() !== "") el("statusFilter").value = "";
+      renderList();
+    }, 250));
+
+    // select all podle aktuálního filtru
     el("chkSelectAll").addEventListener("change", () => {
-      const filtered = currentFilteredItems();
-      if (el("chkSelectAll").checked) {
-        filtered.forEach(it => selectedItemIds.add(it.id));
+      if (el("chkSelectAll").checked){
+        lastFilteredIds.forEach(id => selectedItemIds.add(id));
       } else {
-        filtered.forEach(it => selectedItemIds.delete(it.id));
+        lastFilteredIds.forEach(id => selectedItemIds.delete(id));
       }
       updateSelCount();
-      renderList();
+      recomputeSelectAllCheckbox();
+      // NErenderujeme celý list (rychlejší); checkboxy se ale v UI neaktualizují bez renderu,
+      // proto přepneme viditelné checkboxy ručně:
+      document.querySelectorAll("#itemsList [data-chk]").forEach(chk => {
+        const id = Number(chk.getAttribute("data-chk"));
+        chk.checked = selectedItemIds.has(id);
+      });
     });
 
+    // Event delegation pro list (místo stovek listenerů)
+    el("itemsList").addEventListener("change", (ev) => {
+      const t = ev.target;
+      if (!(t instanceof HTMLElement)) return;
+      if (!t.matches("[data-chk]")) return;
+
+      const id = Number(t.getAttribute("data-chk"));
+      if (t.checked) selectedItemIds.add(id);
+      else selectedItemIds.delete(id);
+
+      updateSelCount();
+      recomputeSelectAllCheckbox();
+    });
+
+    el("itemsList").addEventListener("click", async (ev) => {
+      const t = ev.target;
+      if (!(t instanceof HTMLElement)) return;
+
+      const un = t.closest("[data-unreserve]");
+      const ca = t.closest("[data-cancelall]");
+
+      if (un){
+        ev.preventDefault();
+        const id = Number(un.getAttribute("data-unreserve"));
+        await cancelDealForItem(id, { allowAll:false });
+        return;
+      }
+      if (ca){
+        ev.preventDefault();
+        const id = Number(ca.getAttribute("data-cancelall"));
+        await cancelDealForItem(id, { allowAll:true });
+        return;
+      }
+    });
+
+    // Bulk tlačítka
     el("btnBulkReserve").addEventListener("click", bulkReserve);
     el("btnBulkContract").addEventListener("click", () => bulkStatus("CONTRACT"));
     el("btnBulkPaid").addEventListener("click", () => bulkStatus("PAID"));
-
     el("btnBulkUnreserve").addEventListener("click", bulkUnreserve);
     el("btnBulkCancelAll").addEventListener("click", bulkCancelAll);
     el("btnResetFilters").addEventListener("click", resetFilters);
 
     // ===== INIT =====
-    
     window.addEventListener("load", () => {
       (async () => {
-      const { data: s } = await supabase.auth.getSession();
-      if (s?.session) await showApp();
-      else showLogin();
-    })().catch(e => {
+        const { data: s } = await supabase.auth.getSession();
+        if (s?.session) await showApp();
+        else showLogin();
+      })().catch(e => {
         console.error(e);
-        try { setErr("appErr", e?.message || String(e)); } catch(_) {}
+        try{ setText("appErr", e?.message || String(e)); } catch(_){}
       });
     });
-
   </script>
 </body>
 </html>
