@@ -21,7 +21,6 @@
       --dangerHover:#b91c1c;
       --focus:rgba(37,99,235,.25);
     }
-
     body{
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       margin:16px;
@@ -31,7 +30,6 @@
         radial-gradient(1000px 600px at 90% 10%, rgba(220,38,38,.08), transparent 55%),
         var(--bg);
     }
-
     .card{
       background:var(--card);
       border-radius:14px;
@@ -40,10 +38,8 @@
       border:1px solid rgba(229,231,235,.9);
       margin-bottom:12px;
     }
-
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
     label{display:block;font-size:12px;color:#374151;margin-bottom:4px;}
-
     input, textarea, select{
       padding:12px 14px;
       border:1px solid var(--border);
@@ -58,7 +54,6 @@
       border-color:rgba(37,99,235,.6);
       box-shadow:0 0 0 4px var(--focus);
     }
-
     button{
       padding:10px 12px;
       border:0;
@@ -75,18 +70,15 @@
     button.secondary:hover{ background:var(--secondaryHover); }
     button.danger{ background:var(--danger); }
     button.danger:hover{ background:var(--dangerHover); }
-    button:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none; }
-
+    button:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; }
     .muted{ color:var(--muted); font-size:12px; }
     code{ background:#f3f4f6; padding:2px 6px; border-radius:8px; border:1px solid rgba(229,231,235,.8); }
-
     .err{
       color:var(--danger);
       font-size:16px;
       font-weight:800;
       white-space:pre-wrap;
     }
-
     .pill{
       display:inline-flex;
       align-items:center;
@@ -103,7 +95,6 @@
     .status-CONTRACT{ background:#eef2ff; color:#3730a3; border-color:rgba(55,48,163,.18); }
     .status-PAID{ background:#eff6ff; color:#1d4ed8; border-color:rgba(29,78,216,.18); }
     .status-CANCELLED{ background:#f3f4f6; color:#374151; border-color:rgba(55,65,81,.18); }
-
     .bulkbar{
       display:flex;
       gap:10px;
@@ -117,33 +108,9 @@
     }
     .bulkleft{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
     .checkbox{ width:18px; height:18px; accent-color:var(--primary); }
-
     #itemsList .card{ transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease; }
     #itemsList .card:hover{ box-shadow:var(--shadow2); border-color:rgba(37,99,235,.22); transform:translateY(-1px); }
-
     hr{ border:none; border-top:1px solid rgba(229,231,235,.9); margin:12px 0; }
-
-    .busybar{
-      display:none;
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:14px;
-      border:1px solid rgba(229,231,235,.9);
-      background:#fff;
-      color:#111827;
-      font-size:13px;
-    }
-    .busybar.show{ display:block; }
-    .spinner{
-      width:14px;height:14px;border-radius:50%;
-      border:2px solid rgba(37,99,235,.25);
-      border-top-color: rgba(37,99,235,.95);
-      display:inline-block;
-      animation: spin .8s linear infinite;
-      vertical-align:-2px;
-      margin-right:8px;
-    }
-    @keyframes spin { to { transform: rotate(360deg);} }
   </style>
 </head>
 
@@ -163,7 +130,7 @@
         <button id="btnLogin">Přihlásit</button>
       </div>
     </div>
-    <div class="muted">Project: <code id="projectUrl"></code></div>
+    <div class="muted">Project: <code id="proj"></code></div>
     <div class="err" id="loginMsg"></div>
   </div>
 
@@ -178,8 +145,6 @@
         <button class="secondary" id="btnLogout">Odhlásit</button>
       </div>
     </div>
-
-    <div class="busybar" id="busyBar"><span class="spinner"></span><span id="busyText">Probíhá…</span></div>
     <div class="err" id="appErr"></div>
   </div>
 
@@ -192,7 +157,7 @@
       </div>
       <div>
         <label>Obchodník – email</label>
-        <input id="traderEmail" placeholder="obchodnik@firma.cz" inputmode="email" />
+        <input id="traderEmail" placeholder="obchodnik@firma.cz" />
       </div>
     </div>
     <div class="row">
@@ -202,7 +167,7 @@
       </div>
       <div>
         <label>Klient – email</label>
-        <input id="clientEmail" placeholder="klient@email.cz" inputmode="email" />
+        <input id="clientEmail" placeholder="klient@email.cz" />
       </div>
       <div>
         <label>Klient – adresa</label>
@@ -229,7 +194,6 @@
           <input class="checkbox" type="checkbox" id="chkSelectAll">
           <span class="muted">Vybrat vše (aktuální filtr)</span>
         </label>
-
         <label style="margin:0;">
           <span class="muted">Filtrovat podle</span><br/>
           <select id="filterType">
@@ -240,14 +204,12 @@
             <option value="client_email">Klient – email</option>
           </select>
         </label>
-
         <label style="margin:0;">
           <span class="muted">Hodnota</span><br/>
           <select id="filterValue" disabled>
             <option value="">(vyber typ filtru)</option>
           </select>
         </label>
-
         <label style="margin:0;">
           <span class="muted">Filtr status</span><br/>
           <select id="statusFilter">
@@ -258,15 +220,12 @@
             <option>PAID</option>
           </select>
         </label>
-
         <label style="margin:0;">
           <span class="muted">Hledat</span><br/>
           <input id="q" placeholder="číslo / klient / obchodník..." />
         </label>
-
         <button class="secondary" id="btnResetFilters" title="Zrušit filtry, vyhledávání i výběr">Zobrazit vše</button>
       </div>
-
       <div class="bulkleft">
         <span class="muted">Vybráno: <b id="selCount">0</b></span>
         <button id="btnBulkReserve">Hromadně zarezervovat</button>
@@ -285,18 +244,14 @@
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-    // === CONFIG (centralizované) ===
-    // (1) můžeš přepsat přes window.SUPABASE_URL / window.SUPABASE_ANON_KEY (např. v hostingu)
-    // (2) nebo to nech takhle natvrdo jako doposud
-    const CONFIG = {
-      SUPABASE_URL: window.SUPABASE_URL || "https://pruniywgvomfsghajxpt.supabase.co",
-      SUPABASE_ANON_KEY: window.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydW5peXdndm9tZnNnaGFqeHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODAzMzAsImV4cCI6MjA4Njk1NjMzMH0.PU1rb1BQ9a_YUNyeq8up4PKTEd5hme_zPNHwc1rkjHY"
-    };
+    // === TVOJE PROJECT URL + ANON KEY (z dokumentu) === [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+    const SUPABASE_URL = "https://pruniywgvomfsghajxpt.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydW5peXdndm9tZnNnaGFqeHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODAzMzAsImV4cCI6MjA4Njk1NjMzMH0.PU1rb1BQ9a_YUNyeq8up4PKTEd5hme_zPNHwc1rkjHY";
+    document.getElementById("proj").textContent = SUPABASE_URL;
 
-    const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-    document.getElementById("projectUrl").textContent = CONFIG.SUPABASE_URL;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== STATE =====
+    // ===== STATE ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
     let items = [];
     let dealsByItemId = new Map();
     let selectedItemIds = new Set();
@@ -304,146 +259,95 @@
     let traderEmails = [];
     let clients = [];
     let clientEmails = [];
-    let currentRole = "";   // super | admin
-    let lastFilteredIds = []; // cache pro select-all
-    let isBusy = false;
+    let currentRole = ""; // super | admin
 
-    // ===== UI helpers =====
     const el = (id) => document.getElementById(id);
+    const setErr = (id, msg) => { el(id).textContent = msg || ""; };
+    function setInfo(id, html) { const e = el(id); if (e) e.innerHTML = html || ""; }
+
+    async function rpc(name, args) {
+      const { data, error } = await supabase.rpc(name, args);
+      if (error) throw error;
+      return data;
+    }
+
+    function onUserStartedFiltering() {
+      const sf = el("statusFilter");
+      if (sf) sf.value = "";
+    }
 
     const escapeHtml = (s) => String(s ?? "")
       .replaceAll("&","&amp;").replaceAll("<","&lt;")
       .replaceAll(">","&gt;").replaceAll('"',"&quot;")
       .replaceAll("'","&#039;");
 
-    function setText(id, msg){
-      const e = el(id);
-      if (!e) return;
-      e.textContent = msg || "";
-    }
+    const pad3 = (n) => String(n ?? "").padStart(3, "0");
 
-    // jen pro controlled HTML (vkládáme jen naše vlastní markup + ESCAPE)
-    function setHtml(id, html){
-      const e = el(id);
-      if (!e) return;
-      e.innerHTML = html || "";
-    }
-
-    function setBusy(next, text="Probíhá…"){
-      isBusy = !!next;
-      const bar = el("busyBar");
-      const t = el("busyText");
-      if (t) t.textContent = text;
-      if (bar) bar.classList.toggle("show", isBusy);
-
-      // disable důležitých tlačítek, aby nešlo klikat 2×
-      [
-        "btnLogin","btnRefresh","btnLogout",
-        "btnBulkReserve","btnBulkContract","btnBulkPaid","btnBulkUnreserve","btnBulkCancelAll",
-        "btnResetFilters","chkSelectAll"
-      ].forEach(id => { const b = el(id); if (b) b.disabled = isBusy; });
-
-      // inputs necháváme aktivní, jen akce blokujeme
-    }
-
-    function pad3(n){ return String(n ?? "").padStart(3, "0"); }
-
-    function itemLabel(it){
-      const num = (it.priority_number != null) ? it.priority_number : null;
+    // ✅ OPRAVA BUGU: capture group v regexu (aby m[1] existovalo) [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+    function itemLabel(it) {
+      const num = (it?.priority_number != null) ? it.priority_number : null;
       if (num != null) return `AKCIE Č. ${pad3(num)}`;
-      const m = String(it.symbol || "").match(/(\d+)$/);
+      const m = String(it?.symbol || "").match(/\((\d+)\)$/);
       return `AKCIE Č. ${pad3(m ? m[1] : "")}`;
     }
 
-    function effectiveStatus(it){
-      // Zdroj pravdy: deal.status (pokud existuje), jinak item.status
-      const d = dealsByItemId.get(it.id);
-      return (d?.status) || it.status;
-    }
-
-    async function rpc(name, args){
-      const { data, error } = await supabase.rpc(name, args);
-      if (error) throw error;
-      return data;
-    }
-
-    // debounce pro vyhledávání
-    function debounce(fn, ms=300){
-      let t;
-      return (...args) => {
-        clearTimeout(t);
-        t = setTimeout(() => fn(...args), ms);
-      };
-    }
-
-    function showLogin(){
+    function showLogin() {
       el("loginCard").style.display = "";
       el("appCard").style.display = "none";
       el("formCard").style.display = "none";
       el("listCard").style.display = "none";
-      setText("loginMsg","");
-      setText("appErr","");
-      setText("bulkMsg","");
-      setBusy(false);
+      setErr("loginMsg", "");
+      setErr("appErr", "");
     }
 
-    async function showApp(){
+    async function showApp() {
       el("loginCard").style.display = "none";
       el("appCard").style.display = "";
       el("formCard").style.display = "";
       el("listCard").style.display = "";
-      setText("appErr","");
-      setText("bulkMsg","");
-      setBusy(false);
+      setErr("appErr", "");
 
       const { data: u } = await supabase.auth.getUser();
       const user = u?.user;
       if (!user) return showLogin();
 
-      try{
-        setBusy(true, "Načítám profil…");
+      try {
         const { data: prof, error } = await supabase
           .from("profiles")
           .select("role, full_name")
           .eq("user_id", user.id)
           .single();
-
         if (error) throw error;
 
         el("who").textContent = prof.full_name || user.email;
         el("rolePill").textContent = prof.role;
         currentRole = prof.role || "";
 
-        // Default po loginu: AVAILABLE
+        // Default view after login: show only AVAILABLE [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
         el("statusFilter").value = "AVAILABLE";
         el("filterType").value = "";
         el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
         el("filterValue").disabled = true;
         el("q").value = "";
-
         selectedItemIds.clear();
         el("chkSelectAll").checked = false;
 
-        // UI permissions
+        // UI permissions [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
         el("btnBulkUnreserve").style.display = (currentRole === "super" || currentRole === "admin") ? "" : "none";
         el("btnBulkCancelAll").style.display = (currentRole === "admin") ? "" : "none";
 
         await loadAll();
-      } catch(e){
-        setText("appErr",
+      } catch (e) {
+        setErr("appErr",
           "Chyba profilu/role. Vlož do public.profiles řádek pro svůj User ID (UUID) s rolí super/admin.\n\n" +
           (e?.message || String(e))
         );
-      } finally {
-        setBusy(false);
       }
     }
 
-    function updateSelCount(){
-      el("selCount").textContent = String(selectedItemIds.size);
-    }
+    function updateSelCount() { el("selCount").textContent = String(selectedItemIds.size); }
 
-    function renderDynamicFilterOptions(){
+    function renderDynamicFilterOptions() {
       const type = el("filterType").value;
       const sel = el("filterValue");
       let options = [];
@@ -452,90 +356,71 @@
       if (type === "client_name") options = clients;
       if (type === "client_email") options = clientEmails;
 
-      if (!type){
+      if (!type) {
         sel.innerHTML = '<option value="">(vyber typ filtru)</option>';
         sel.disabled = true;
         return;
       }
-
       const current = sel.value;
       sel.disabled = false;
       sel.innerHTML =
         '<option value="">(vše)</option>' +
         options.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join("");
-
       sel.value = options.includes(current) ? current : "";
     }
 
-    function currentFilteredItems(){
+    function currentFilteredItems() {
       const statusF = el("statusFilter").value;
       const filterType = el("filterType").value;
       const filterValue = el("filterValue").value;
       const q = (el("q").value || "").trim().toLowerCase();
 
-      const out = [];
-      for (const it of items){
+      return items.filter(it => {
         const d = dealsByItemId.get(it.id);
-        const st = (d?.status) || it.status;
 
-        // dropdown filtr (trader/client) má smysl jen tam, kde deal existuje
-        if (filterType && filterValue){
-          if (!d) continue;
-          if (d[filterType] !== filterValue) continue;
-          // v původním kódu se to omezovalo jen na RESERVED/CONTRACT/PAID – zachováno
-          if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) continue;
+        if (filterType && filterValue) {
+          if (!d) return false;
+          if (d[filterType] !== filterValue) return false;
+          if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) return false;
         }
+        if (statusF && it.status !== statusF) return false;
+        if (!q) return true;
 
-        if (statusF && st !== statusF) continue;
+        const hay = [
+          itemLabel(it),
+          String(it.priority_number ?? ""),
+          d?.trader_name, d?.trader_email, d?.client_name, d?.client_email
+        ].filter(Boolean).join(" ").toLowerCase();
 
-        if (q){
-          const hay = [
-            itemLabel(it),
-            String(it.priority_number ?? ""),
-            d?.trader_name, d?.trader_email, d?.client_name, d?.client_email
-          ].filter(Boolean).join(" ").toLowerCase();
-
-          if (!hay.includes(q)) continue;
-        }
-
-        out.push(it);
-      }
-      return out;
+        return hay.includes(q);
+      });
     }
 
-    function recomputeSelectAllCheckbox(){
-      const allVisibleSelected = lastFilteredIds.length > 0 && lastFilteredIds.every(id => selectedItemIds.has(id));
-      el("chkSelectAll").checked = allVisibleSelected;
-    }
-
-    function renderList(){
+    function renderList() {
       const filtered = currentFilteredItems();
-      lastFilteredIds = filtered.map(it => it.id);
-      recomputeSelectAllCheckbox();
+      const allVisibleSelected = filtered.length > 0 && filtered.every(it => selectedItemIds.has(it.id));
+      el("chkSelectAll").checked = allVisibleSelected;
 
       el("itemsList").innerHTML = filtered.map(it => {
         const d = dealsByItemId.get(it.id);
-        const st = effectiveStatus(it);
-        const pill = `<span class="pill status-${escapeHtml(st)}">${escapeHtml(st)}</span>`;
-
+        const pill = `<span class="pill status-${it.status}">${it.status}</span>`;
         const line2 = d
-          ? `<div class="muted">${escapeHtml(d.trader_name)} → ${escapeHtml(d.client_name)} • Deal #${escapeHtml(d.id)}</div>`
+          ? `<div class="muted">${escapeHtml(d.trader_name)} → ${escapeHtml(d.client_name)} • Deal #${d.id}</div>`
           : `<div class="muted">Bez dealu</div>`;
-
         const checked = selectedItemIds.has(it.id) ? "checked" : "";
 
-        const isSuper = (currentRole === "super" || currentRole === "admin");
-        const isAdmin = (currentRole === "admin");
-
-        // Akce: super/admin smí zrušit jen RESERVED; admin může cancel-all u CONTRACT/PAID
-        let actions = "";
-        if (d){
-          if (isSuper && st === "RESERVED" && d.status === "RESERVED"){
-            actions = `<button class="secondary" data-unreserve="${it.id}">Zrušit rezervaci</button>`;
-          } else if (isAdmin && (st === "CONTRACT" || st === "PAID") && (d.status === "CONTRACT" || d.status === "PAID")){
-            actions = `<button class="danger" data-cancelall="${it.id}">Admin: zrušit vše</button>`;
+        const actions = (() => {
+          if (!d) return "";
+          const isSuper = (currentRole === "super" || currentRole === "admin");
+          const isAdmin = (currentRole === "admin");
+          if (isSuper && it.status === "RESERVED" && d.status === "RESERVED") {
+            return `<button class="secondary" data-unreserve="${it.id}">Zrušit rezervaci</button>`;
           }
-        }
+          if (isAdmin && (it.status === "CONTRACT" || it.status === "PAID") && (d.status === "CONTRACT" || d.status === "PAID")) {
+            return `<button class="danger" data-cancelall="${it.id}">Admin: zrušit vše</button>`;
+          }
+          return "";
+        })();
 
         return `
           <div class="card" style="margin:0;">
@@ -555,76 +440,100 @@
         `;
       }).join("");
 
+      document.querySelectorAll("[data-chk]").forEach(chk => {
+        chk.addEventListener("change", () => {
+          const id = Number(chk.getAttribute("data-chk"));
+          if (chk.checked) selectedItemIds.add(id);
+          else selectedItemIds.delete(id);
+          updateSelCount();
+          const filteredNow = currentFilteredItems();
+          el("chkSelectAll").checked = filteredNow.length > 0 && filteredNow.every(it => selectedItemIds.has(it.id));
+        });
+      });
+
+      document.querySelectorAll("[data-unreserve]").forEach(btn => {
+        btn.addEventListener("click", async (ev) => {
+          ev.preventDefault();
+          const id = Number(btn.getAttribute("data-unreserve"));
+          await cancelDealForItem(id, { allowAll: false });
+        });
+      });
+
+      document.querySelectorAll("[data-cancelall]").forEach(btn => {
+        btn.addEventListener("click", async (ev) => {
+          ev.preventDefault();
+          const id = Number(btn.getAttribute("data-cancelall"));
+          await cancelDealForItem(id, { allowAll: true });
+        });
+      });
+
       updateSelCount();
     }
 
-    async function loadAll(){
-      setText("formMsg", "");
-      setText("appErr", "");
-      setText("bulkMsg", "");
+    async function loadAll() {
+      setErr("formMsg", "");
+      setErr("appErr", "");
+      setInfo("bulkMsg", "");
 
-      try{
-        setBusy(true, "Načítám data…");
+      const { data: itemsData, error: itErr } = await supabase
+        .from("items")
+        .select("id,symbol,company,priority_number,status,updated_at")
+        .order("priority_number", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true });
+      if (itErr) throw itErr;
+      items = itemsData || [];
 
-        const { data: itemsData, error: itErr } = await supabase
-          .from("items")
-          .select("id,symbol,company,priority_number,status,updated_at")
-          .order("priority_number", { ascending: true, nullsFirst: false })
-          .order("id", { ascending: true });
+      const { data: dealsData, error: dErr } = await supabase
+        .from("deals")
+        .select("id,item_id,trader_name,trader_email,client_name,client_email,client_address,notes,status,paid_at,contract_at,created_at,updated_at")
+        .in("status", ["RESERVED","CONTRACT","PAID"]);
+      if (dErr) throw dErr;
 
-        if (itErr) throw itErr;
-        items = itemsData || [];
+      dealsByItemId = new Map();
+      const traderSet = new Set();
+      const traderEmailSet = new Set();
+      const clientSet = new Set();
+      const clientEmailSet = new Set();
 
-        const { data: dealsData, error: dErr } = await supabase
-          .from("deals")
-          .select("id,item_id,trader_name,trader_email,client_name,client_email,client_address,notes,status,paid_at,contract_at,created_at,updated_at")
-          .in("status", ["RESERVED","CONTRACT","PAID"]);
+      (dealsData || []).forEach(d => {
+        const prev = dealsByItemId.get(d.item_id);
+        if (!prev || new Date(d.updated_at) > new Date(prev.updated_at)) {
+          dealsByItemId.set(d.item_id, d);
+        }
+        if (d.trader_name) traderSet.add(d.trader_name);
+        if (d.trader_email) traderEmailSet.add(d.trader_email);
+        if (d.client_name) clientSet.add(d.client_name);
+        if (d.client_email) clientEmailSet.add(d.client_email);
+      });
 
-        if (dErr) throw dErr;
+      traders = Array.from(traderSet).sort((a,b)=>a.localeCompare(b, "cs"));
+      traderEmails = Array.from(traderEmailSet).sort((a,b)=>a.localeCompare(b, "cs"));
+      clients = Array.from(clientSet).sort((a,b)=>a.localeCompare(b, "cs"));
+      clientEmails = Array.from(clientEmailSet).sort((a,b)=>a.localeCompare(b, "cs"));
 
-        dealsByItemId = new Map();
-        const traderSet = new Set();
-        const traderEmailSet = new Set();
-        const clientSet = new Set();
-        const clientEmailSet = new Set();
+      const idSet = new Set(items.map(x => x.id));
+      selectedItemIds = new Set([...selectedItemIds].filter(id => idSet.has(id)));
 
-        (dealsData || []).forEach(d => {
-          const prev = dealsByItemId.get(d.item_id);
-          if (!prev || new Date(d.updated_at) > new Date(prev.updated_at)){
-            dealsByItemId.set(d.item_id, d);
-          }
-          if (d.trader_name) traderSet.add(d.trader_name);
-          if (d.trader_email) traderEmailSet.add(d.trader_email);
-          if (d.client_name) clientSet.add(d.client_name);
-          if (d.client_email) clientEmailSet.add(d.client_email);
+      renderDynamicFilterOptions();
+      renderList();
+    }
+
+    // ✅ Pomocná funkce: zavolá Edge Function send-mails
+    // Supabase doporučuje invoke přes supabase.functions.invoke(...) [5](https://supabase.com/docs/reference/javascript/functions-invoke)
+    async function sendMails(event, itemIds) {
+      try {
+        const { data, error } = await supabase.functions.invoke("send-mails", {
+          body: { event, item_ids: itemIds }
         });
-
-        traders = Array.from(traderSet).sort((a,b)=>a.localeCompare(b, "cs"));
-        traderEmails = Array.from(traderEmailSet).sort((a,b)=>a.localeCompare(b,"cs"));
-        clients = Array.from(clientSet).sort((a,b)=>a.localeCompare(b,"cs"));
-        clientEmails = Array.from(clientEmailSet).sort((a,b)=>a.localeCompare(b,"cs"));
-
-        // prune selection na existující items
-        const idSet = new Set(items.map(x => x.id));
-        selectedItemIds = new Set([...selectedItemIds].filter(id => idSet.has(id)));
-
-        renderDynamicFilterOptions();
-        renderList();
-      } finally {
-        setBusy(false);
+        if (error) console.error("send-mails error", error);
+        return { data, error };
+      } catch (e) {
+        console.error("send-mails failed", e);
+        return { data: null, error: e };
       }
     }
 
-    function buildAutoEmailText({ clientName, shareLabel, company }){
-      // ponecháno jako v původním kódu, jen jako funkce
-      return (
-        `Vážený obchodníku,\n\n` +
-        `právě byly pro Vašeho klienta ${clientName} rezervovány ${shareLabel} společnosti ${company}.\n\n` +
-        `S pozdravem\nInvestiční oddělení`
-      );
-    }
-
-    async function reserveDealForItem(itemId){
+    async function reserveDealForItem(itemId) {
       const traderName = el("traderName").value.trim();
       const traderEmail = el("traderEmail").value.trim();
       const clientName = el("clientName").value.trim();
@@ -633,10 +542,12 @@
       const notes = el("notes").value.trim();
 
       const company = "Rezidence Chrudim I a.s.";
-      const it = items.find(x => x.id === itemId);
-      const shareLabel = itemLabel(it || { priority_number:null, symbol:"" });
+      const shareLabel = itemLabel(items.find(x => x.id === itemId) || { priority_number: null, symbol: "" });
 
-      const emailText = buildAutoEmailText({ clientName, shareLabel, company });
+      const emailText = `Vážený obchodníku,\n\n` +
+        `právě byly pro Vašeho klienta ${clientName} rezervovány ${shareLabel} společnosti ${company}.\n\n` +
+        `S pozdravem\nInvestiční oddělení`;
+
       const finalNotes = notes ? (emailText + "\n\nPoznámka: " + notes) : emailText;
 
       if (!traderName) throw new Error("Vyplň jméno obchodníka (Údaje k obchodu).");
@@ -646,6 +557,7 @@
       const createdBy = u?.user?.id;
       if (!createdBy) throw new Error("Nejsi přihlášen.");
 
+      // Atomic RPC reserve_one [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
       await rpc("reserve_one", {
         p_item_id: itemId,
         p_trader_name: traderName,
@@ -655,57 +567,57 @@
         p_client_address: clientAddress || null,
         p_notes: finalNotes || null
       });
+
+      // ✅ PO ÚSPĚCHU: pošli mail RESERVED (1 položka)
+      await sendMails("RESERVED", [itemId]);
     }
 
-    // ===== BULK OPS =====
-    async function bulkReserve(){
-      setText("bulkMsg","");
+    // ===== BULK OPS ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+    async function bulkReserve() {
+      setInfo("bulkMsg", "");
       const selected = [...selectedItemIds];
-      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
+      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
-      setBusy(true, "Provádím hromadnou rezervaci…");
       let ok = 0, skipped = 0;
       const reasons = [];
-
-      try{
-        for (const itemId of selected){
-          const it = items.find(x => x.id === itemId);
-          if (!it){ skipped++; reasons.push(`${itemId}: neexistuje`); continue; }
-
-          // kontrola dostupnosti podle item.status (rychlá) – skutečná kontrola je v DB v RPC
-          if (effectiveStatus(it) !== "AVAILABLE"){ skipped++; reasons.push(`${itemLabel(it)}: není AVAILABLE`); continue; }
-
-          try{
-            await reserveDealForItem(itemId);
-            ok++;
-          } catch(e){
-            skipped++;
-            reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
-          }
+      for (const itemId of selected) {
+        const it = items.find(x => x.id === itemId);
+        if (!it) { skipped++; reasons.push(`${itemId}: neexistuje`); continue; }
+        if (it.status !== "AVAILABLE") { skipped++; reasons.push(`${itemLabel(it)}: není AVAILABLE`); continue; }
+        try {
+          await reserveDealForItem(itemId); // už posílá RESERVED mail
+          ok++;
+        } catch (e) {
+          skipped++;
+          reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
         }
-
-        await loadAll();
-
-        const safeReasons = escapeHtml(reasons.slice(0,30).join("\n")).replaceAll("\n","<br>");
-        setHtml("bulkMsg",
-          `<span style="color:#065f46;font-weight:800;">PROVEDENO (${ok})</span>, ` +
-          `<span style="color:#dc2626;font-weight:800;">NEPROVEDENO (${skipped})</span>` +
-          (reasons.length ? `<div class="muted" style="margin-top:6px;white-space:pre-wrap;">${safeReasons}</div>` : "")
-        );
-      } finally {
-        setBusy(false);
       }
+      await loadAll();
+      setInfo(
+        "bulkMsg",
+        `<span style="color:#065f46;font-weight:800;">PROVEDENO (${ok})</span>, ` +
+        `<span style="color:#dc2626;font-weight:800;">NEPROVEDENO (${skipped})</span>` +
+        (reasons.length
+          ? `<div class="muted" style="margin-top:6px;white-space:pre-wrap;">${
+              escapeHtml(reasons.slice(0, 30).join("\n")).replaceAll("\n", "<br>")
+            }</div>`
+          : "")
+      );
     }
 
-    async function bulkStatus(next){
-      setText("bulkMsg","");
+    async function bulkStatus(next) {
+      setInfo("bulkMsg", "");
       const selected = [...selectedItemIds];
-      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
+      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
-      setBusy(true, `Nastavuji status ${next}…`);
-      try{
-        const res = await rpc("set_status", { p_item_ids: selected, p_next_status: next });
+      try {
+        const res = await rpc("set_status", { p_item_ids: selected, p_next_status: next }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
         await loadAll();
+
+        // ✅ PO ÚSPĚCHU: pošli mail CONTRACT nebo PAID pro všechny vybrané
+        if (next === "CONTRACT" || next === "PAID") {
+          await sendMails(next, selected);
+        }
 
         const label = (next === "CONTRACT") ? "smlouva" : "zaplaceno";
         const reasons = (res?.skipped_rows || []).map(r => {
@@ -714,18 +626,17 @@
           return `${lbl}: ${r.reason}`;
         });
 
-        setText("bulkMsg",
+        setErr(
+          "bulkMsg",
           `Hromadně ${label}. OK: ${res?.ok ?? 0}, přeskočeno: ${res?.skipped ?? 0}` +
-          (reasons.length ? "\n" + reasons.slice(0,30).join("\n") : "")
+          (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : "")
         );
-      } catch(e){
-        setText("bulkMsg", e?.message || String(e));
-      } finally {
-        setBusy(false);
+      } catch (e) {
+        setErr("bulkMsg", e?.message || String(e));
       }
     }
 
-    function resetFilters(){
+    function resetFilters() {
       el("filterType").value = "";
       el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
       el("filterValue").disabled = true;
@@ -737,166 +648,115 @@
       renderList();
     }
 
-    // ===== CANCEL / UNRESERVE =====
-    async function cancelDealForItem(itemId, { allowAll }){
-      setText("bulkMsg","");
-      setText("appErr","");
+    async function cancelDealForItem(itemId, { allowAll }) {
+      setInfo("bulkMsg", "");
+      setErr("appErr", "");
 
       const isSuper = (currentRole === "super" || currentRole === "admin");
       const isAdmin = (currentRole === "admin");
-
-      if (allowAll && !isAdmin){
-        setText("bulkMsg", "Pouze admin může zrušit vše (včetně smlouvy/platby).");
-        return;
-      }
-      if (!allowAll && !isSuper){
-        setText("bulkMsg", "Pouze super/admin může zrušit rezervaci.");
-        return;
-      }
+      if (allowAll && !isAdmin) { setErr("bulkMsg", "Pouze admin může zrušit vše (včetně smlouvy/platby)."); return; }
+      if (!allowAll && !isSuper) { setErr("bulkMsg", "Pouze super/admin může zrušit rezervaci."); return; }
 
       const it = items.find(x => x.id === itemId);
       const d = dealsByItemId.get(itemId);
-      if (!it || !d){
-        setText("bulkMsg", "Nelze zrušit: položka nebo deal nenalezen.");
-        return;
-      }
+      if (!it || !d) { setErr("bulkMsg", "Nelze zrušit: položka nebo deal nenalezen."); return; }
 
-      const st = effectiveStatus(it);
-
-      if (!allowAll){
-        if (!(st === "RESERVED" && d.status === "RESERVED")){
-          setText("bulkMsg", "Lze zrušit jen rezervaci (status RESERVED).");
+      if (!allowAll) {
+        if (!(it.status === "RESERVED" && d.status === "RESERVED")) {
+          setErr("bulkMsg", "Lze zrušit jen rezervaci (status RESERVED).");
           return;
         }
-      } else {
-        if (!["RESERVED","CONTRACT","PAID"].includes(d.status)){
-          setText("bulkMsg", "Deal není ve stavu RESERVED/CONTRACT/PAID.");
+      }
+      if (allowAll) {
+        if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) {
+          setErr("bulkMsg", "Deal není ve stavu RESERVED/CONTRACT/PAID.");
           return;
         }
       }
 
-      setBusy(true, allowAll ? "Admin ruší…":"Ruším rezervaci…");
-      try{
-        await rpc("cancel_one", { p_item_id: itemId, p_allow_all: !!allowAll });
+      try {
+        await rpc("cancel_one", { p_item_id: itemId, p_allow_all: !!allowAll }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
         await loadAll();
-        setText("bulkMsg", allowAll ? "Admin: zrušeno (položka vrácena do AVAILABLE)." : "Rezervace zrušena (položka vrácena do AVAILABLE).");
-      } catch(e){
-        setText("bulkMsg", e?.message || String(e));
-      } finally {
-        setBusy(false);
+        setErr("bulkMsg", allowAll ? "Admin: zrušeno (položka vrácena do AVAILABLE)." : "Rezervace zrušena (položka vrácena do AVAILABLE).");
+      } catch (e) {
+        setErr("bulkMsg", e?.message || String(e));
       }
     }
 
-    async function bulkUnreserve(){
-      setText("bulkMsg","");
+    async function bulkUnreserve() {
+      setInfo("bulkMsg", "");
       const isSuper = (currentRole === "super" || currentRole === "admin");
-      if (!isSuper) return setText("bulkMsg", "Pouze super/admin může zrušit rezervace.");
+      if (!isSuper) return setErr("bulkMsg", "Pouze super/admin může zrušit rezervace.");
 
       const selected = [...selectedItemIds];
-      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
+      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
-      setBusy(true, "Ruším rezervace…");
       let ok = 0, skipped = 0;
       const reasons = [];
-
-      try{
-        for (const itemId of selected){
-          const it = items.find(x => x.id === itemId);
-          const d = dealsByItemId.get(itemId);
-          if (!it || !d){ skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
-
-          const st = effectiveStatus(it);
-          if (!(st === "RESERVED" && d.status === "RESERVED")){ skipped++; reasons.push(`${itemLabel(it)}: není RESERVED`); continue; }
-
-          try{
-            await rpc("cancel_one", { p_item_id: itemId, p_allow_all: false });
-            ok++;
-          } catch(e){
-            skipped++;
-            reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
-          }
+      for (const itemId of selected) {
+        const it = items.find(x => x.id === itemId);
+        const d = dealsByItemId.get(itemId);
+        if (!it || !d) { skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
+        if (!(it.status === "RESERVED" && d.status === "RESERVED")) { skipped++; reasons.push(`${itemLabel(it)}: není RESERVED`); continue; }
+        try {
+          await rpc("cancel_one", { p_item_id: itemId, p_allow_all: false }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+          ok++;
+        } catch (e) {
+          skipped++;
+          reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
         }
-
-        await loadAll();
-        setText("bulkMsg",
-          `Zrušení rezervací hotovo. OK: ${ok}, přeskočeno: ${skipped}` +
-          (reasons.length ? "\n" + reasons.slice(0,30).join("\n") : "")
-        );
-      } finally {
-        setBusy(false);
       }
+      await loadAll();
+      setErr("bulkMsg", `Zrušení rezervací hotovo. OK: ${ok}, přeskočeno: ${skipped}` + (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : ""));
     }
 
-    async function bulkCancelAll(){
-      setText("bulkMsg","");
-      if (currentRole !== "admin") return setText("bulkMsg", "Pouze admin může zrušit vše.");
+    async function bulkCancelAll() {
+      setInfo("bulkMsg", "");
+      if (currentRole !== "admin") return setErr("bulkMsg", "Pouze admin může zrušit vše.");
 
       const selected = [...selectedItemIds];
-      if (selected.length === 0) return setText("bulkMsg", "Nic není vybráno.");
+      if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
-      setBusy(true, "Admin ruší vše…");
       let ok = 0, skipped = 0;
       const reasons = [];
-
-      try{
-        for (const itemId of selected){
-          const it = items.find(x => x.id === itemId);
-          const d = dealsByItemId.get(itemId);
-          if (!it || !d){ skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
-
-          if (!["RESERVED","CONTRACT","PAID"].includes(d.status)){ skipped++; reasons.push(`${itemLabel(it)}: deal není RESERVED/CONTRACT/PAID`); continue; }
-
-          try{
-            await rpc("cancel_one", { p_item_id: itemId, p_allow_all: true });
-            ok++;
-          } catch(e){
-            skipped++;
-            reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
-          }
+      for (const itemId of selected) {
+        const it = items.find(x => x.id === itemId);
+        const d = dealsByItemId.get(itemId);
+        if (!it || !d) { skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
+        if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) { skipped++; reasons.push(`${itemLabel(it)}: deal není RESERVED/CONTRACT/PAID`); continue; }
+        try {
+          await rpc("cancel_one", { p_item_id: itemId, p_allow_all: true }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+          ok++;
+        } catch (e) {
+          skipped++;
+          reasons.push(`${itemLabel(it)}: ${e?.message || e}`);
         }
-
-        await loadAll();
-        setText("bulkMsg",
-          `Admin: zrušeno. OK: ${ok}, přeskočeno: ${skipped}` +
-          (reasons.length ? "\n" + reasons.slice(0,30).join("\n") : "")
-        );
-      } finally {
-        setBusy(false);
       }
+      await loadAll();
+      setErr("bulkMsg", `Admin: zrušeno. OK: ${ok}, přeskočeno: ${skipped}` + (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : ""));
     }
 
-    // ===== EVENTS =====
+    // ===== EVENTS ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
     el("btnLogin").addEventListener("click", async () => {
-      try{
-        setText("loginMsg","");
-        setBusy(true, "Přihlašuji…");
-
+      try {
+        setErr("loginMsg", "");
         const email = el("email").value.trim();
         const password = el("password").value;
-
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-
         await showApp();
-      } catch(e){
-        setText("loginMsg", e?.message || String(e));
-      } finally {
-        setBusy(false);
+      } catch (e) {
+        setErr("loginMsg", e?.message || String(e));
       }
     });
 
     el("btnLogout").addEventListener("click", async () => {
-      setBusy(true, "Odhlašuji…");
-      try{
-        await supabase.auth.signOut();
-        showLogin();
-      } finally {
-        setBusy(false);
-      }
+      await supabase.auth.signOut();
+      showLogin();
     });
 
     el("btnRefresh").addEventListener("click", async () => {
-      try{ await loadAll(); } catch(e){ setText("appErr", e?.message || String(e)); }
+      try { await loadAll(); } catch (e) { setErr("appErr", e?.message || String(e)); }
     });
 
     el("btnClear").addEventListener("click", () => {
@@ -906,82 +766,32 @@
       el("clientEmail").value = "";
       el("clientAddress").value = "";
       el("notes").value = "";
-      setText("formMsg","");
+      setErr("formMsg", "");
     });
 
-    // Filtry
     el("statusFilter").addEventListener("change", renderList);
 
     el("filterType").addEventListener("change", () => {
-      // když začne filtrovat, necháme statusFilter prázdný (jako dřív), ale jen pokud už něco filtruje
-      el("statusFilter").value = "";
+      onUserStartedFiltering();
       renderDynamicFilterOptions();
       renderList();
     });
 
-    el("filterValue").addEventListener("change", () => {
-      el("statusFilter").value = "";
+    el("filterValue").addEventListener("change", () => { onUserStartedFiltering(); renderList(); });
+
+    el("q").addEventListener("input", () => {
+      if ((el("q").value || "").trim() !== "") onUserStartedFiltering();
       renderList();
     });
 
-    el("q").addEventListener("input", debounce(() => {
-      if ((el("q").value || "").trim() !== "") el("statusFilter").value = "";
-      renderList();
-    }, 250));
-
-    // select all podle aktuálního filtru
     el("chkSelectAll").addEventListener("change", () => {
-      if (el("chkSelectAll").checked){
-        lastFilteredIds.forEach(id => selectedItemIds.add(id));
-      } else {
-        lastFilteredIds.forEach(id => selectedItemIds.delete(id));
-      }
+      const filtered = currentFilteredItems();
+      if (el("chkSelectAll").checked) filtered.forEach(it => selectedItemIds.add(it.id));
+      else filtered.forEach(it => selectedItemIds.delete(it.id));
       updateSelCount();
-      recomputeSelectAllCheckbox();
-      // NErenderujeme celý list (rychlejší); checkboxy se ale v UI neaktualizují bez renderu,
-      // proto přepneme viditelné checkboxy ručně:
-      document.querySelectorAll("#itemsList [data-chk]").forEach(chk => {
-        const id = Number(chk.getAttribute("data-chk"));
-        chk.checked = selectedItemIds.has(id);
-      });
+      renderList();
     });
 
-    // Event delegation pro list (místo stovek listenerů)
-    el("itemsList").addEventListener("change", (ev) => {
-      const t = ev.target;
-      if (!(t instanceof HTMLElement)) return;
-      if (!t.matches("[data-chk]")) return;
-
-      const id = Number(t.getAttribute("data-chk"));
-      if (t.checked) selectedItemIds.add(id);
-      else selectedItemIds.delete(id);
-
-      updateSelCount();
-      recomputeSelectAllCheckbox();
-    });
-
-    el("itemsList").addEventListener("click", async (ev) => {
-      const t = ev.target;
-      if (!(t instanceof HTMLElement)) return;
-
-      const un = t.closest("[data-unreserve]");
-      const ca = t.closest("[data-cancelall]");
-
-      if (un){
-        ev.preventDefault();
-        const id = Number(un.getAttribute("data-unreserve"));
-        await cancelDealForItem(id, { allowAll:false });
-        return;
-      }
-      if (ca){
-        ev.preventDefault();
-        const id = Number(ca.getAttribute("data-cancelall"));
-        await cancelDealForItem(id, { allowAll:true });
-        return;
-      }
-    });
-
-    // Bulk tlačítka
     el("btnBulkReserve").addEventListener("click", bulkReserve);
     el("btnBulkContract").addEventListener("click", () => bulkStatus("CONTRACT"));
     el("btnBulkPaid").addEventListener("click", () => bulkStatus("PAID"));
@@ -989,7 +799,7 @@
     el("btnBulkCancelAll").addEventListener("click", bulkCancelAll);
     el("btnResetFilters").addEventListener("click", resetFilters);
 
-    // ===== INIT =====
+    // ===== INIT ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
     window.addEventListener("load", () => {
       (async () => {
         const { data: s } = await supabase.auth.getSession();
@@ -997,7 +807,7 @@
         else showLogin();
       })().catch(e => {
         console.error(e);
-        try{ setText("appErr", e?.message || String(e)); } catch(_){}
+        try { setErr("appErr", e?.message || String(e)); } catch(_) {}
       });
     });
   </script>
