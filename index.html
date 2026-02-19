@@ -244,14 +244,14 @@
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-    // === TVOJE PROJECT URL + ANON KEY (z dokumentu) === [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+    // z tvého původního souboru: SUPABASE_URL + ANON KEY [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
     const SUPABASE_URL = "https://pruniywgvomfsghajxpt.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydW5peXdndm9tZnNnaGFqeHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzODAzMzAsImV4cCI6MjA4Njk1NjMzMH0.PU1rb1BQ9a_YUNyeq8up4PKTEd5hme_zPNHwc1rkjHY";
     document.getElementById("proj").textContent = SUPABASE_URL;
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ===== STATE ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+    // ===== STATE ===== [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
     let items = [];
     let dealsByItemId = new Map();
     let selectedItemIds = new Set();
@@ -283,12 +283,27 @@
 
     const pad3 = (n) => String(n ?? "").padStart(3, "0");
 
-    // ✅ OPRAVA BUGU: capture group v regexu (aby m[1] existovalo) [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+    // ✅ OPRAVA: capture group v regexu (původně m[1] nemohlo existovat) [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
     function itemLabel(it) {
       const num = (it?.priority_number != null) ? it.priority_number : null;
       if (num != null) return `AKCIE Č. ${pad3(num)}`;
       const m = String(it?.symbol || "").match(/\((\d+)\)$/);
       return `AKCIE Č. ${pad3(m ? m[1] : "")}`;
+    }
+
+    // ✅ helper: zavolá tvou existující Edge Function send-deal-mails
+    // invoke je správný způsob volání Edge Function v JS [1](https://fast-endpoints.com/docs/idempotency)
+    async function sendDealMails(event, itemIds) {
+      try {
+        const { data, error } = await supabase.functions.invoke("send-deal-mails", {
+          body: { event, item_ids: itemIds }
+        });
+        if (error) console.error("send-deal-mails error", error);
+        return { data, error };
+      } catch (e) {
+        console.error("send-deal-mails failed", e);
+        return { data: null, error: e };
+      }
     }
 
     function showLogin() {
@@ -323,7 +338,7 @@
         el("rolePill").textContent = prof.role;
         currentRole = prof.role || "";
 
-        // Default view after login: show only AVAILABLE [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+        // Default view after login: show only AVAILABLE [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
         el("statusFilter").value = "AVAILABLE";
         el("filterType").value = "";
         el("filterValue").innerHTML = '<option value="">(vyber typ filtru)</option>';
@@ -332,7 +347,7 @@
         selectedItemIds.clear();
         el("chkSelectAll").checked = false;
 
-        // UI permissions [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+        // UI permissions [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
         el("btnBulkUnreserve").style.display = (currentRole === "super" || currentRole === "admin") ? "" : "none";
         el("btnBulkCancelAll").style.display = (currentRole === "admin") ? "" : "none";
 
@@ -518,21 +533,6 @@
       renderList();
     }
 
-    // ✅ Pomocná funkce: zavolá Edge Function send-mails
-    // Supabase doporučuje invoke přes supabase.functions.invoke(...) [5](https://supabase.com/docs/reference/javascript/functions-invoke)
-    async function sendMails(event, itemIds) {
-      try {
-        const { data, error } = await supabase.functions.invoke("send-mails", {
-          body: { event, item_ids: itemIds }
-        });
-        if (error) console.error("send-mails error", error);
-        return { data, error };
-      } catch (e) {
-        console.error("send-mails failed", e);
-        return { data: null, error: e };
-      }
-    }
-
     async function reserveDealForItem(itemId) {
       const traderName = el("traderName").value.trim();
       const traderEmail = el("traderEmail").value.trim();
@@ -541,13 +541,12 @@
       const clientAddress = el("clientAddress").value.trim();
       const notes = el("notes").value.trim();
 
+      // původní text generovaný ve frontendu (z tvého souboru) [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
       const company = "Rezidence Chrudim I a.s.";
       const shareLabel = itemLabel(items.find(x => x.id === itemId) || { priority_number: null, symbol: "" });
-
       const emailText = `Vážený obchodníku,\n\n` +
         `právě byly pro Vašeho klienta ${clientName} rezervovány ${shareLabel} společnosti ${company}.\n\n` +
         `S pozdravem\nInvestiční oddělení`;
-
       const finalNotes = notes ? (emailText + "\n\nPoznámka: " + notes) : emailText;
 
       if (!traderName) throw new Error("Vyplň jméno obchodníka (Údaje k obchodu).");
@@ -557,7 +556,7 @@
       const createdBy = u?.user?.id;
       if (!createdBy) throw new Error("Nejsi přihlášen.");
 
-      // Atomic RPC reserve_one [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+      // RPC reserve_one (z tvého souboru) [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
       await rpc("reserve_one", {
         p_item_id: itemId,
         p_trader_name: traderName,
@@ -568,11 +567,10 @@
         p_notes: finalNotes || null
       });
 
-      // ✅ PO ÚSPĚCHU: pošli mail RESERVED (1 položka)
-      await sendMails("RESERVED", [itemId]);
+      // ✅ po rezervaci pošli email přes send-deal-mails
+      await sendDealMails("RESERVED", [itemId]);
     }
 
-    // ===== BULK OPS ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
     async function bulkReserve() {
       setInfo("bulkMsg", "");
       const selected = [...selectedItemIds];
@@ -585,7 +583,7 @@
         if (!it) { skipped++; reasons.push(`${itemId}: neexistuje`); continue; }
         if (it.status !== "AVAILABLE") { skipped++; reasons.push(`${itemLabel(it)}: není AVAILABLE`); continue; }
         try {
-          await reserveDealForItem(itemId); // už posílá RESERVED mail
+          await reserveDealForItem(itemId); // už pošle RESERVED mail
           ok++;
         } catch (e) {
           skipped++;
@@ -611,12 +609,12 @@
       if (selected.length === 0) return setErr("bulkMsg", "Nic není vybráno.");
 
       try {
-        const res = await rpc("set_status", { p_item_ids: selected, p_next_status: next }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+        const res = await rpc("set_status", { p_item_ids: selected, p_next_status: next }); // [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
         await loadAll();
 
-        // ✅ PO ÚSPĚCHU: pošli mail CONTRACT nebo PAID pro všechny vybrané
+        // ✅ po CONTRACT/PAID pošli emaily přes send-deal-mails
         if (next === "CONTRACT" || next === "PAID") {
-          await sendMails(next, selected);
+          await sendDealMails(next, selected);
         }
 
         const label = (next === "CONTRACT") ? "smlouva" : "zaplaceno";
@@ -675,7 +673,7 @@
       }
 
       try {
-        await rpc("cancel_one", { p_item_id: itemId, p_allow_all: !!allowAll }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+        await rpc("cancel_one", { p_item_id: itemId, p_allow_all: !!allowAll }); // [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
         await loadAll();
         setErr("bulkMsg", allowAll ? "Admin: zrušeno (položka vrácena do AVAILABLE)." : "Rezervace zrušena (položka vrácena do AVAILABLE).");
       } catch (e) {
@@ -699,7 +697,7 @@
         if (!it || !d) { skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
         if (!(it.status === "RESERVED" && d.status === "RESERVED")) { skipped++; reasons.push(`${itemLabel(it)}: není RESERVED`); continue; }
         try {
-          await rpc("cancel_one", { p_item_id: itemId, p_allow_all: false }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+          await rpc("cancel_one", { p_item_id: itemId, p_allow_all: false }); // [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
           ok++;
         } catch (e) {
           skipped++;
@@ -725,7 +723,7 @@
         if (!it || !d) { skipped++; reasons.push(`${itemId}: chybí item/deal`); continue; }
         if (!["RESERVED","CONTRACT","PAID"].includes(d.status)) { skipped++; reasons.push(`${itemLabel(it)}: deal není RESERVED/CONTRACT/PAID`); continue; }
         try {
-          await rpc("cancel_one", { p_item_id: itemId, p_allow_all: true }); // [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+          await rpc("cancel_one", { p_item_id: itemId, p_allow_all: true }); // [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
           ok++;
         } catch (e) {
           skipped++;
@@ -736,7 +734,7 @@
       setErr("bulkMsg", `Admin: zrušeno. OK: ${ok}, přeskočeno: ${skipped}` + (reasons.length ? "\n" + reasons.slice(0, 30).join("\n") : ""));
     }
 
-    // ===== EVENTS ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
+    // ===== EVENTS ===== [4](https://office.com?path=df1b54e7-89df-42a6-a822-56dc67e5a5d4)
     el("btnLogin").addEventListener("click", async () => {
       try {
         setErr("loginMsg", "");
@@ -799,7 +797,6 @@
     el("btnBulkCancelAll").addEventListener("click", bulkCancelAll);
     el("btnResetFilters").addEventListener("click", resetFilters);
 
-    // ===== INIT ===== [1](https://office.com?path=4d2ead32-0b6f-4239-8108-91b43a97ad74)
     window.addEventListener("load", () => {
       (async () => {
         const { data: s } = await supabase.auth.getSession();
